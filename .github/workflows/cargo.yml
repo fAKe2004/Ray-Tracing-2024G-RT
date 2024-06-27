@@ -3,10 +3,14 @@ on:
       branches:
       - master
       - main
+      paths:
+        - 'RayTracer/src/**'
     pull_request:
       branches:
       - master 
       - main
+      paths:
+        - 'RayTracer/src/**'
       
 name: CI
   
