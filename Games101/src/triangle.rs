@@ -3,7 +3,9 @@
 #![allow(dead_code)]
 
 use std::process::exit;
-use nalgebra::{Vector2, Vector3, Vector4};
+use nalgebra::{Matrix4, Vector2, Vector3, Vector4};
+
+use crate::{get_maximum, get_minimum};
 
 #[derive(Default, Clone, Debug)]
 pub struct Triangle {
@@ -46,5 +48,31 @@ impl Triangle {
     }
     pub fn get_color(&self) -> Vector3<f64> {
         self.color[0] * 255.0 // only one color per triangle.
+    }
+}
+
+pub struct Aabb {
+    pub v : [Vector3<f64>; 3],
+    pub xmin: f64,
+    pub xmax: f64,
+    pub ymin: f64,
+    pub ymax: f64,
+}
+impl Aabb {
+    pub(crate) fn new(t: &Triangle) -> Self { 
+        let v: [Vector3<f64>; 3] = [
+            Vector3::new(t.v[0].x, t.v[0].y, t.v[0].z),
+            Vector3::new(t.v[1].x, t.v[1].y, t.v[1].z),
+            Vector3::new(t.v[2].x, t.v[2].y, t.v[2].z),
+        ];
+        let vec_x: Vec<f64> = vec![t.v[0].x, t.v[1].x, t.v[2].x]; 
+        let vec_y: Vec<f64> = vec![t.v[0].y, t.v[1].y, t.v[2].y]; 
+        Aabb {
+            v: v,
+            xmin: get_minimum(&vec_x),
+            xmax: get_maximum(&vec_x),
+            ymin: get_minimum(&vec_y),
+            ymax: get_maximum(&vec_y),
+        }
     }
 }

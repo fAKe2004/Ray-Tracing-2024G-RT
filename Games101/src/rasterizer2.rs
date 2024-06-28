@@ -1,7 +1,8 @@
 use std::collections::HashMap;
+use rand::Rng;
 
-use nalgebra::{Matrix4, Vector3, Vector4};
-use crate::triangle::Triangle;
+use nalgebra::{Matrix4, Vector, Vector2, Vector3, Vector4};
+use crate::triangle::{Aabb, Triangle};
 
 #[allow(dead_code)]
 pub enum Buffer {
@@ -28,8 +29,15 @@ pub struct Rasterizer {
     frame_buf: Vec<Vector3<f64>>,
     depth_buf: Vec<f64>,
     /*  You may need to uncomment here to implement the MSAA method  */
-    // frame_sample: Vec<Vector3<f64>>,
-    // depth_sample: Vec<f64>,
+
+    // MSAA
+    frame_sample: Vec<Vector3<f64>>,
+    depth_sample: Vec<f64>,
+
+    // TAA
+    last_frame_buf:  Vec<Vector3<f64>>,
+    first_render_flag: bool,
+    
     width: u64,
     height: u64,
     next_id: usize,
@@ -44,18 +52,43 @@ pub struct IndBufId(usize);
 #[derive(Clone, Copy)]
 pub struct ColBufId(usize);
 
+const antialiasing_method:&str = "MSAA";
+
 impl Rasterizer {
     pub fn new(w: u64, h: u64) -> Self {
         let mut r = Rasterizer::default();
         r.width = w;
         r.height = h;
-        r.frame_buf.resize((w * h) as usize, Vector3::zeros());
-        r.depth_buf.resize((w * h) as usize, 0.0);
+        
+        match antialiasing_method {
+            
+            "MSAA" => {   
+                r.frame_buf.resize((w * h) as usize, Vector3::zeros());
+                r.frame_sample.resize((w * h * 4) as usize, Vector3::zeros());
+                r.depth_sample.resize((w * h * 4) as usize, f64::MAX);
+            },
+        
+            "TAA" => {
+                r.frame_buf.resize((w * h) as usize, Vector3::zeros());
+                r.depth_buf.resize((w * h) as usize, f64::MAX);                
+                r.last_frame_buf.resize((w * h) as usize, Vector3::zeros());
+                r.first_render_flag = true;
+            },
+
+            _ => {
+                r.frame_buf.resize((w * h) as usize, Vector3::zeros());
+                r.depth_buf.resize((w * h) as usize, f64::MAX);                
+            }
+        }
         r
     }
 
     fn get_index(&self, x: usize, y: usize) -> usize {
         ((self.height - 1 - y as u64) * self.width + x as u64) as usize
+    }
+    
+    fn get_index_MSAA(&self, x: usize, y:usize, sub_index: usize /*0 - 4*/) ->usize {
+        4 * self.get_index(x, y) + sub_index
     }
 
     fn set_pixel(&mut self, point: &Vector3<f64>, color: &Vector3<f64>) {
@@ -66,14 +99,56 @@ impl Rasterizer {
     pub fn clear(&mut self, buff: Buffer) {
         match buff {
             Buffer::Color => {
-                self.frame_buf.fill(Vector3::new(0.0, 0.0, 0.0));
+                match antialiasing_method {
+                    "MSAA" => {
+                        self.frame_buf.fill(Vector3::new(0.0, 0.0, 0.0));
+                        self.frame_sample.fill(Vector3::new(0.0, 0.0, 0.0));
+                    },
+                    "TAA" => {
+                        std::mem::swap(&mut self.last_frame_buf, &mut self.frame_buf);
+                        self.frame_buf.fill(Vector3::new(0.0, 0.0, 0.0));
+                        self.first_render_flag = false;
+                    },
+                    _ => {
+                        self.frame_buf.fill(Vector3::new(0.0, 0.0, 0.0));
+                    },
+                }
             }
             Buffer::Depth => {
                 self.depth_buf.fill(f64::MAX);
+                match antialiasing_method {
+                    "MSAA" => {
+                        self.depth_sample.fill(f64::MAX);
+                    },
+                    "TAA" => {
+                        self.depth_sample.fill(f64::MAX);
+                        self.first_render_flag = false;                 
+                    }
+                    _ => {
+                        self.depth_buf.fill(f64::MAX);
+                    },
+                }
             }
             Buffer::Both => {
-                self.frame_buf.fill(Vector3::new(0.0, 0.0, 0.0));
-                self.depth_buf.fill(f64::MAX);
+                
+                match antialiasing_method {
+                    "MSAA" => {
+                        self.frame_buf.fill(Vector3::new(0.0, 0.0, 0.0));                
+                        self.frame_sample.fill(Vector3::new(0.0, 0.0, 0.0));
+                        self.depth_sample.fill(f64::MAX);
+                    },
+                    "TAA" => {
+                        std::mem::swap(&mut self.last_frame_buf, &mut self.frame_buf);
+                        self.frame_buf.fill(Vector3::new(0.0, 0.0, 0.0));
+                        self.depth_buf.fill(f64::MAX);
+                        self.first_render_flag = false;
+                    }
+                    _ => {
+                        self.frame_buf.fill(Vector3::new(0.0, 0.0, 0.0));
+                        self.depth_buf.fill(f64::MAX);
+                    },
+                }
+                
             }
         }
     }
@@ -158,7 +233,94 @@ impl Rasterizer {
 
     pub fn rasterize_triangle(&mut self, t: &Triangle) {
         /*  implement your code here  */
+        match antialiasing_method {
+            "MSAA" => self.MSAA_sampling(t),
+            "TAA" => self.TAA_sampling(t),
+            _ => self.trivial_sampling(t),
+        }
+    }
         
+    fn trivial_sampling(&mut self, t: &Triangle) {
+        let aabb = Aabb::new(t);
+                
+        // println!("This is Aabb, with this {} {} {} {} \n", aabb.xmin, aabb.xmax, aabb.ymin, aabb.ymax);
+        for x in aabb.xmin as i32..=aabb.xmax as i32{
+            for y in aabb.ymin as i32..=aabb.ymax as i32{
+                let index = self.get_index(x as usize, y as usize);
+                if inside_triangle(x as f64 + 0.5, y as f64 + 0.5, &aabb.v) {
+                    let z = compute_interpolate_depth(x as f64, y as f64, &aabb.v);
+                    if z < self.depth_buf[index] {
+                        // println!("This is pixel set, hello !!! at {} {} [COL : {}]", x, y, &(t.color[0]));
+                        let color = t.color[0] * 255.0;
+                        self.set_pixel(&Vector3::new(x as f64, y as f64, z), &color);
+                        self.depth_buf[index] = z;
+                    }
+                }
+            }
+        }
+    }
+
+    fn MSAA_sampling(&mut self, t: &Triangle) {
+        let aabb = Aabb::new(t);
+
+        let dx = [0.0, 0.5, 0.0, 0.5];
+        let dy = [0.0, 0.0, 0.5, 0.5];
+
+        for x in aabb.xmin as i32..=aabb.xmax as i32{
+            for y in aabb.ymin as i32..=aabb.ymax as i32{
+                let mut modified = false;
+                let index = self.get_index(x as usize, y as usize);
+                for sub_index in 0..4 {
+                    let (x_sub, y_sub) = (x as f64 + dx[sub_index], y as f64 + dy[sub_index]);
+                    if inside_triangle(x_sub + 0.25, y_sub + 0.25, &aabb.v) {
+                        let z = compute_interpolate_depth(x_sub, y_sub, &aabb.v);
+                        let index_MSAA = self.get_index_MSAA(x as usize, y as usize, sub_index);
+    
+                        // println!("{} {}", self.depth_sample.len(), index_MSAA);
+                        if z < self.depth_sample[index_MSAA] {
+                            // println!("This is pixel set, hello !!! at {} {} [COL : {}]", x, y, &(t.color[0]));
+                            let color = t.color[0] * 255.0;
+                            self.frame_sample[index_MSAA] = color;
+                            self.depth_sample[index_MSAA] = z;
+                            modified = true;
+                        }
+                    }
+                }
+
+                if modified {
+                    self.frame_buf[index] = Vector3::zeros();
+                    for sub_index in 0..4 {
+                        self.frame_buf[index] += self.frame_sample[index * 4 + sub_index] / 4.0
+                    }
+                }
+            }
+        }
+    }
+
+    fn TAA_sampling(&mut self, t: &Triangle) {
+        let aabb = Aabb::new(t);
+        
+        let mut rng = rand::thread_rng();
+
+        // println!("This is Aabb, with this {} {} {} {} \n", aabb.xmin, aabb.xmax, aabb.ymin, aabb.ymax);
+        for x in aabb.xmin as i32..=aabb.xmax as i32{
+            for y in aabb.ymin as i32..=aabb.ymax as i32{
+                let (dx, dy): (f64, f64) = (rng.gen(), rng.gen());
+                let index = self.get_index(x as usize, y as usize);
+                if inside_triangle(x as f64 + dx, y as f64 + dy, &aabb.v) {
+                    let z = compute_interpolate_depth(x as f64, y as f64, &aabb.v);
+                    if z < self.depth_buf[index] {
+                        // println!("This is pixel set, hello !!! at {} {} [COL : {}]", x, y, &(t.color[0]));
+                        let color = t.color[0] * 255.0;
+                        self.set_pixel(&Vector3::new(x as f64, y as f64, z), &color);
+                        self.depth_buf[index] = z;
+                    }
+                }
+                if !self.first_render_flag {
+                    self.frame_buf[index] = (self.frame_buf[index] + self.last_frame_buf[index]) / 2.0;
+                }
+            }
+        }
     }
 
     pub fn frame_buffer(&self) -> &Vec<Vector3<f64>> {
@@ -172,8 +334,17 @@ fn to_vec4(v3: Vector3<f64>, w: Option<f64>) -> Vector4<f64> {
 
 fn inside_triangle(x: f64, y: f64, v: &[Vector3<f64>; 3]) -> bool {
     /*  implement your code here  */
+    let point = Vector2::new(x, y);
+    let mut p: [Vector2<f64>; 3] = [Vector2::new(0.0, 0.0); 3];
+    let mut d: [f64; 3] = [0.0; 3];
+    for i in 0..3 {
+        p[i] = Vector2::new(v[i][0], v[i][1]);
+    }
+    for i in 0..3 {
+        d[i] = (p[(i + 1) % 3] - p[i]).perp(&(point - p[i]));
+    } 
 
-    false
+    (d[0] > 0.0 && d[1] > 0.0 && d[2] > 0.0) ||  (d[0] < 0.0 && d[1] < 0.0 && d[2] < 0.0)
 }
 
 fn compute_barycentric2d(x: f64, y: f64, v: &[Vector3<f64>; 3]) -> (f64, f64, f64) {
@@ -184,4 +355,10 @@ fn compute_barycentric2d(x: f64, y: f64, v: &[Vector3<f64>; 3]) -> (f64, f64, f6
     let c3 = (x * (v[0].y - v[1].y) + (v[1].x - v[0].x) * y + v[0].x * v[1].y - v[1].x * v[0].y)
         / (v[2].x * (v[0].y - v[1].y) + (v[1].x - v[0].x) * v[2].y + v[0].x * v[1].y - v[1].x * v[0].y);
     (c1, c2, c3)
+}
+
+fn compute_interpolate_depth(x: f64, y: f64, v : &[Vector3<f64>; 3]) -> f64 {
+    let (c1, c2, c3) = compute_barycentric2d(x, y, v);
+    let point = c1 * v[0] + c2 * v[1] + c3 * v[2];
+    return point.z;
 }

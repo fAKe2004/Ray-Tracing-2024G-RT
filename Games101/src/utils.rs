@@ -1,4 +1,5 @@
 #![allow(warnings)]
+use std::f64::consts::PI;
 use std::os::raw::c_void;
 use nalgebra::{Matrix3, Matrix4, Vector3, Vector4};
 use opencv::core::{Mat, MatTraitConst};
@@ -10,40 +11,97 @@ use crate::triangle::Triangle;
 pub type V3f = Vector3<f64>;
 pub type M4f = Matrix4<f64>;
 
-pub(crate) fn get_view_matrix(eye_pos: V3f) -> M4f {
+
+// ANXILIARY FUNCTION
+
+pub(crate) fn extend_matrix3_to_matrix4(matrix3: &Matrix3<f64>) -> Matrix4<f64> {
+    Matrix4::new(
+        matrix3[(0, 0)], matrix3[(0, 1)], matrix3[(0, 2)], 0.0,
+        matrix3[(1, 0)], matrix3[(1, 1)], matrix3[(1, 2)], 0.0,
+        matrix3[(2, 0)], matrix3[(2, 1)], matrix3[(2, 2)], 0.0,
+        0.0,             0.0,            0.0,              1.0,
+    )
+}
+
+pub(crate) fn get_minimum(vect: &Vec<f64>) -> f64 {
+    let mut res = vect[0];
+    for i in vect {
+        if *i < res {
+            res = *i;
+        }
+    }
+    res
+}
+pub(crate) fn get_maximum(vect: &Vec<f64>) -> f64 {
+    let mut res = vect[0];
+    for i in vect {
+        if res < *i {
+            res = *i;
+        }
+    }
+    res
+}
+// END OF ANXILIARY FUNCTION
+
+
+pub(crate) fn get_view_matrix(eye_pos: V3f) -> Matrix4<f64> {
     let mut view: Matrix4<f64> = Matrix4::identity();
     /*  implement your code here  */
-
+    view[(0, 3)] = -eye_pos[0];
+    view[(1, 3)] = -eye_pos[1];
+    view[(2, 3)] = -eye_pos[2];
+    let mut r_inv: Matrix4<f64> = Matrix4::identity();
+    r_inv[(2, 2)] = -1.0;
+    view = r_inv.transpose() * view;
     view
 }
 
-pub(crate) fn get_model_matrix(rotation_angle: f64,scale: f64) -> M4f {
-    let mut model: Matrix4<f64> = Matrix4::identity();
-    /*  implement your code here  */
+pub(crate) fn get_rotation_matrix(axis: V3f, rotation_angle: f64) -> Matrix4<f64> {
+    let rotation_angle = rotation_angle / 180.0 * PI;
+    let mut r = rotation_angle.cos() * Matrix3::identity() + 
+        (1.0 - rotation_angle.cos()) * (axis * axis.transpose()) + 
+        rotation_angle.sin() * Matrix3::new(
+            0.0, -axis[2], axis[1],
+            axis[2], 0.0, -axis[0],
+            -axis[1], axis[0], 0.0
+        );
+    return extend_matrix3_to_matrix4(&r)
+}
 
+    /* rotate matrix around z-axis*/
+pub(crate) fn get_model_matrix(rotation_angle: f64, scale : f64) -> Matrix4<f64> {
+    let mut model: Matrix4<f64> = Matrix4::identity() * scale;
+    model[(3, 3)] = 1.0;
+    /*  implement your code here  */
+    // wtf, degree?
+    let rotation_angle = rotation_angle / 180.0 * PI;
+    model[(0, 0)] = rotation_angle.cos();
+    model[(0, 1)] = -(rotation_angle.sin());
+    model[(1, 0)] = rotation_angle.sin();
+    model[(1, 1)] = rotation_angle.cos();
     model
 }
 
-pub(crate) fn get_model_matrix_lab3(rotation_angle: f64) -> M4f {
-    let mut model: M4f = Matrix4::identity();
-    let rad = rotation_angle.to_radians();
-    model[(0, 0)] = rad.cos();
-    model[(2, 2)] = model[(0, 0)];
-    model[(0, 2)] = rad.sin();
-    model[(2, 0)] = -model[(0, 2)];
-    let mut scale: M4f = Matrix4::identity();
-    scale[(0, 0)] = 2.5;
-    scale[(1, 1)] = 2.5;
-    scale[(2, 2)] = 2.5;
-    model * scale
-}
-
-pub(crate) fn get_projection_matrix(eye_fov: f64, aspect_ratio: f64, z_near: f64, z_far: f64) -> M4f {
+pub(crate) fn get_projection_matrix(eye_fov: f64, aspect_ratio: f64, z_near: f64, z_far: f64) -> Matrix4<f64> {
     let mut projection: Matrix4<f64> = Matrix4::identity();
-    let mut scale: M4f = Matrix4::identity();
     /*  implement your code here  */
-
-    projection * scale
+    let mut m_ortho: Matrix4<f64> = Matrix4::identity();
+    let total_height = (eye_fov / 2.0).tan() * z_near.abs() * 2.0;
+    m_ortho[(0, 0)] = 2.0 / (total_height * aspect_ratio);
+    m_ortho[(1, 1)] = 2.0 / (total_height);
+    m_ortho[(2, 2)] = 2.0 / (z_far - z_near);
+    let mut m_ortho_translation: Matrix4<f64> = Matrix4::identity();
+    m_ortho_translation[(2, 3)] = -(z_near + z_far) / 2.0;
+    m_ortho = m_ortho * m_ortho_translation;
+    let mut m_persp: Matrix4<f64> = Matrix4::identity();
+    m_persp[(0, 0)] = z_near;
+    m_persp[(1, 1)] = z_near;
+    m_persp[(2, 2)] = z_near + z_far;
+    m_persp[(3, 2)] = 1.0;
+    m_persp[(2, 3)] = -z_near * z_far;
+    m_persp[(3, 3)] = 0.0;
+    projection = m_ortho * m_persp;
+    projection
 }
 
 pub(crate) fn frame_buffer2cv_mat(frame_buffer: &Vec<V3f>) -> Mat {

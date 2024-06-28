@@ -36,7 +36,7 @@ pub fn t3(filename:String,method:String)-> Result<()>{
 
 
     r.clear(Buffer::Both);
-    r.set_model(get_model_matrix_lab3(angle));
+    // r.set_model(get_model_matrix_lab3(angle));
     r.set_view(get_view_matrix(eye_pos));
     r.set_projection(get_projection_matrix(45.0, 1.0, 0.1, 50.0));
 

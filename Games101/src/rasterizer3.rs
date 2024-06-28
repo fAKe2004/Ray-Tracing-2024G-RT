@@ -4,6 +4,7 @@ use nalgebra::{Matrix4, Vector2, Vector3, Vector4};
 use crate::shader::{FragmentShaderPayload, VertexShaderPayload};
 use crate::texture::Texture;
 use crate::triangle::Triangle;
+use crate::triangle::Aabb;
 
 #[allow(dead_code)]
 pub enum Buffer {
@@ -109,10 +110,33 @@ impl Rasterizer {
 
     pub fn rasterize_triangle(&mut self, triangle: &Triangle, mvp: Matrix4<f64>) {
         /*  Implement your code here  */
+        let (t, view_space_pos) = Self::get_new_tri(triangle, self.view, self.model, mvp, (self.height, self.width));
 
-
+        self.trivial_sampling(&t, mvp);
     }
     
+
+    fn trivial_sampling(&mut self, t: &Triangle, mvp: Matrix4<f64>) {
+        let aabb = Aabb::new(t);
+                
+        for x in aabb.xmin as i32..=aabb.xmax as i32{
+            for y in aabb.ymin as i32..=aabb.ymax as i32{
+                let index = Self::get_index(self.height, self.width, x as usize, y as usize);
+                println!("TESTING : {} {} {} {} {}", x, y, t.v[0], t.v[1], t.v[2]);
+                if inside_triangle(x as f64 + 0.5, y as f64 + 0.5, &t.v) {
+                    let z = compute_interpolate_depth(x as f64, y as f64, &aabb.v);
+                    if z < self.depth_buf[index] {
+                        // let color = t.color[0] * 255.0;
+                        println!("Does it works?");
+                        let color = Vector3::new(255.0, 255.0, 255.0);
+                        Self::set_pixel(self.height, self.width, &mut self.frame_buf, &Vector3::new(x as f64, y as f64, z), &color);
+                        self.depth_buf[index] = z;
+                    }
+                }
+            }
+        }
+    }
+
     fn interpolate_vec3(a: f64, b: f64, c: f64, vert1: Vector3<f64>, vert2: Vector3<f64>, vert3: Vector3<f64>, weight: f64) -> Vector3<f64> {
         (a * vert1 + b * vert2 + c * vert3) / weight
     }
@@ -187,9 +211,15 @@ fn inside_triangle(x: f64, y: f64, v: &[Vector4<f64>; 3]) -> bool {
     }
 }
 
-fn compute_barycentric2d(x: f64, y: f64, v: &[Vector4<f64>; 3]) -> (f64, f64, f64) {
+fn compute_barycentric2d(x: f64, y: f64, v: &[Vector3<f64>; 3]) -> (f64, f64, f64) { // note: Vec4 modified to Vec3
     let c1 = (x * (v[1].y - v[2].y) + (v[2].x - v[1].x) * y + v[1].x * v[2].y - v[2].x * v[1].y) / (v[0].x * (v[1].y - v[2].y) + (v[2].x - v[1].x) * v[0].y + v[1].x * v[2].y - v[2].x * v[1].y);
     let c2 = (x * (v[2].y - v[0].y) + (v[0].x - v[2].x) * y + v[2].x * v[0].y - v[0].x * v[2].y) / (v[1].x * (v[2].y - v[0].y) + (v[0].x - v[2].x) * v[1].y + v[2].x * v[0].y - v[0].x * v[2].y);
     let c3 = (x * (v[0].y - v[1].y) + (v[1].x - v[0].x) * y + v[0].x * v[1].y - v[1].x * v[0].y) / (v[2].x * (v[0].y - v[1].y) + (v[1].x - v[0].x) * v[2].y + v[0].x * v[1].y - v[1].x * v[0].y);
     (c1, c2, c3)
+}
+
+fn compute_interpolate_depth(x: f64, y: f64, v : &[Vector3<f64>; 3]) -> f64 {
+    let (c1, c2, c3) = compute_barycentric2d(x, y, v);
+    let point = c1 * v[0] + c2 * v[1] + c3 * v[2];
+    return point.z;
 }
