@@ -28,10 +28,12 @@ pub fn t1()-> Result<()>{
 
     let mut k = 0;
     let mut frame_count = 0;
+    let mut model = get_model_matrix(angle, 1.0);
+    let mut axis_flag = true;
 
     while k != 27 {
         r.clear(Buffer::Both);
-        r.set_model(get_model_matrix(angle,1.0));
+        r.set_model(model);
         r.set_view(get_view_matrix(eye_pos));
         r.set_projection(get_projection_matrix(45.0, 1.0, 0.1, 50.0));
         r.draw_triangle(pos_id, ind_id, Primitive::Triangle);
@@ -42,11 +44,23 @@ pub fn t1()-> Result<()>{
 
         k = wait_key(80).unwrap();
         println!("frame count: {}", frame_count);
+        println!("angle is : {}", angle);
         if k == 'a' as i32 {
             angle += 10.0;
         } else if k == 'd' as i32 {
             angle -= 10.0;
-        } 
+        } else if k == 'r' as i32 {
+            axis_flag = match axis_flag {
+                false => true,
+                true => false,
+            };
+        }
+
+        if axis_flag == false {
+            model = get_rotation_matrix(Vector3::new(1.0, 1.0, 1.0).normalize(), angle);
+        } else {
+            model = get_model_matrix(angle,1.0);
+        }
         frame_count += 1;
     }
     Ok(())

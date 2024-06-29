@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use rand::Rng;
 
+use chrono::{DateTime, Duration, Local};
 use nalgebra::{Matrix4, Vector, Vector2, Vector3, Vector4};
 use crate::triangle::{Aabb, Triangle};
 
@@ -52,7 +53,7 @@ pub struct IndBufId(usize);
 #[derive(Clone, Copy)]
 pub struct ColBufId(usize);
 
-const antialiasing_method:&str = "MSAA";
+pub const antialiasing_method:&str = "NoAA";
 
 impl Rasterizer {
     pub fn new(w: u64, h: u64) -> Self {
@@ -107,7 +108,7 @@ impl Rasterizer {
                     "TAA" => {
                         std::mem::swap(&mut self.last_frame_buf, &mut self.frame_buf);
                         self.frame_buf.fill(Vector3::new(0.0, 0.0, 0.0));
-                        self.first_render_flag = false;
+                        // self.first_render_flag = false;
                     },
                     _ => {
                         self.frame_buf.fill(Vector3::new(0.0, 0.0, 0.0));
@@ -122,7 +123,7 @@ impl Rasterizer {
                     },
                     "TAA" => {
                         self.depth_sample.fill(f64::MAX);
-                        self.first_render_flag = false;                 
+                        // self.first_render_flag = false;                 
                     }
                     _ => {
                         self.depth_buf.fill(f64::MAX);
@@ -141,7 +142,7 @@ impl Rasterizer {
                         std::mem::swap(&mut self.last_frame_buf, &mut self.frame_buf);
                         self.frame_buf.fill(Vector3::new(0.0, 0.0, 0.0));
                         self.depth_buf.fill(f64::MAX);
-                        self.first_render_flag = false;
+                        // self.first_render_flag = false;
                     }
                     _ => {
                         self.frame_buf.fill(Vector3::new(0.0, 0.0, 0.0));
@@ -190,6 +191,8 @@ impl Rasterizer {
     }
 
     pub fn draw(&mut self, pos_buffer: PosBufId, ind_buffer: IndBufId, col_buffer: ColBufId, _typ: Primitive) {
+        let beginning_time = Local::now();
+
         let buf = &self.clone().pos_buf[&pos_buffer.0];
         let ind: &Vec<Vector3<usize>> = &self.clone().ind_buf[&ind_buffer.0];
         let col = &self.clone().col_buf[&col_buffer.0];
@@ -229,6 +232,25 @@ impl Rasterizer {
 
             self.rasterize_triangle(&t);
         }
+
+        match antialiasing_method {
+            "TAA" => {
+                if !self.first_render_flag {
+                    for i in 0..self.width {
+                        for j in 0..self.height {
+                            let index = self.get_index(i as usize, j as usize);
+                            self.frame_buf[index] = (self.frame_buf[index] + self.last_frame_buf[index]) / 2.0;
+                        }
+                    }
+                    self.first_render_flag = false;
+                }
+            },
+            _ => {
+            },
+        }
+
+        let ending_time = Local::now();
+        println!("Time consumed with {} : {}", antialiasing_method,ending_time.signed_duration_since(beginning_time).num_milliseconds());
     }
 
     pub fn rasterize_triangle(&mut self, t: &Triangle) {
@@ -248,7 +270,7 @@ impl Rasterizer {
             for y in aabb.ymin as i32..=aabb.ymax as i32{
                 let index = self.get_index(x as usize, y as usize);
                 if inside_triangle(x as f64 + 0.5, y as f64 + 0.5, &aabb.v) {
-                    let z = compute_interpolate_depth(x as f64, y as f64, &aabb.v);
+                    let z = compute_interpolate_depth(x as f64 + 0.5, y as f64 + 0.5, &aabb.v);
                     if z < self.depth_buf[index] {
                         // println!("This is pixel set, hello !!! at {} {} [COL : {}]", x, y, &(t.color[0]));
                         let color = t.color[0] * 255.0;
@@ -273,7 +295,7 @@ impl Rasterizer {
                 for sub_index in 0..4 {
                     let (x_sub, y_sub) = (x as f64 + dx[sub_index], y as f64 + dy[sub_index]);
                     if inside_triangle(x_sub + 0.25, y_sub + 0.25, &aabb.v) {
-                        let z = compute_interpolate_depth(x_sub, y_sub, &aabb.v);
+                        let z = compute_interpolate_depth(x_sub + 0.25, y_sub + 0.25, &aabb.v);
                         let index_MSAA = self.get_index_MSAA(x as usize, y as usize, sub_index);
     
                         // println!("{} {}", self.depth_sample.len(), index_MSAA);
@@ -308,16 +330,13 @@ impl Rasterizer {
                 let (dx, dy): (f64, f64) = (rng.gen(), rng.gen());
                 let index = self.get_index(x as usize, y as usize);
                 if inside_triangle(x as f64 + dx, y as f64 + dy, &aabb.v) {
-                    let z = compute_interpolate_depth(x as f64, y as f64, &aabb.v);
+                    let z = compute_interpolate_depth(x as f64 + dx, y as f64 + dy, &aabb.v);
                     if z < self.depth_buf[index] {
                         // println!("This is pixel set, hello !!! at {} {} [COL : {}]", x, y, &(t.color[0]));
                         let color = t.color[0] * 255.0;
                         self.set_pixel(&Vector3::new(x as f64, y as f64, z), &color);
                         self.depth_buf[index] = z;
                     }
-                }
-                if !self.first_render_flag {
-                    self.frame_buf[index] = (self.frame_buf[index] + self.last_frame_buf[index]) / 2.0;
                 }
             }
         }

@@ -37,3 +37,10 @@ report要求包含：该次report的git commit 编号，相关实现细节与效
    1. -i --index 1/2/3 指定任务号
    2. -n --name 指定task3输出文件名
    3. -m --method 指定task3的method
+   4. example: cargo run -- -i 3 -n output.png -m normal
+2. [旧-原理教程](https://notes.sjtu.edu.cn/s/nHmmmUAl8)
+3. [旧-任务](https://notes.sjtu.edu.cn/NSJDEfvdTKGxbGRnm2WdxA)
+
+# RayTracer更新
+
+[教程](https://raytracing.github.io/)

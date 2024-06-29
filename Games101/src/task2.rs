@@ -5,6 +5,7 @@ pub use opencv::{
     Result,
 };
 pub use opencv::core::Vector;
+use crate::rasterizer2::antialiasing_method;
 pub use crate::rasterizer2::{Buffer, Rasterizer,Primitive};
 pub use crate::utils::*;
 pub use crate::shader::FragmentShaderPayload;
@@ -51,9 +52,23 @@ pub fn t2() -> Result<()>{
         let image = frame_buffer2cv_mat(frame_buffer);
 
         imshow("image", &image)?;
-        k = wait_key(2000).unwrap();
+        k = wait_key(80).unwrap();
         println!("frame count: {}", frame_count);
         frame_count += 1;
+
+        let key = wait_key(80).unwrap();
+        if key == 'q' as i32 {
+            break;
+        }
     }
+
+    let image = frame_buffer2cv_mat(r.frame_buffer());
+    let v: Vector<i32> = Default::default();
+
+    let s: String = antialiasing_method.to_string();
+    let file_name: String = s + ".png";
+    opencv::imgcodecs::imwrite(&file_name, &image, &v).unwrap();
+
+    println!("File saved to {}", &file_name);
     Ok(())
 }

@@ -4,8 +4,9 @@ use std::os::raw::c_void;
 use nalgebra::{Matrix3, Matrix4, Vector3, Vector4};
 use opencv::core::{Mat, MatTraitConst};
 use opencv::imgproc::{COLOR_RGB2BGR, cvt_color};
+use tobj::Model;
 use crate::shader::{FragmentShaderPayload, VertexShaderPayload};
-use crate::texture::Texture;
+use crate::texture::{self, Texture};
 use crate::triangle::Triangle;
 
 pub type V3f = Vector3<f64>;
@@ -51,7 +52,7 @@ pub(crate) fn get_view_matrix(eye_pos: V3f) -> Matrix4<f64> {
     view[(1, 3)] = -eye_pos[1];
     view[(2, 3)] = -eye_pos[2];
     let mut r_inv: Matrix4<f64> = Matrix4::identity();
-    r_inv[(2, 2)] = -1.0;
+    // r_inv[(2, 2)] = -1.0;
     view = r_inv.transpose() * view;
     view
 }
@@ -70,28 +71,50 @@ pub(crate) fn get_rotation_matrix(axis: V3f, rotation_angle: f64) -> Matrix4<f64
 
     /* rotate matrix around z-axis*/
 pub(crate) fn get_model_matrix(rotation_angle: f64, scale : f64) -> Matrix4<f64> {
-    let mut model: Matrix4<f64> = Matrix4::identity() * scale;
-    model[(3, 3)] = 1.0;
+    let mut scale: Matrix4<f64> = Matrix4::identity() * scale;
+    scale[(3, 3)] = 1.0;
     /*  implement your code here  */
     // wtf, degree?
     let rotation_angle = rotation_angle / 180.0 * PI;
+    let mut model: Matrix4<f64> = Matrix4::identity();
     model[(0, 0)] = rotation_angle.cos();
     model[(0, 1)] = -(rotation_angle.sin());
     model[(1, 0)] = rotation_angle.sin();
     model[(1, 1)] = rotation_angle.cos();
-    model
+    model * scale
 }
+
+pub(crate) fn get_model_matrix_lab3(rotation_angle: f64) -> Matrix4<f64> {
+    // println!("> This is ORIGIN utils <");
+
+    let scaler = 2.5;
+    let mut scale: Matrix4<f64> = Matrix4::identity() * scaler;
+    scale[(3, 3)] = 1.0;
+    /*  implement your code here  */
+    // wtf, degree?
+    let mut model: Matrix4<f64> = Matrix4::identity();
+    let rotation_angle = rotation_angle / 180.0 * PI;
+    model[(0, 0)] = rotation_angle.cos();
+    model[(0, 2)] = rotation_angle.sin();
+    model[(2, 0)] = -(rotation_angle.sin());
+    model[(2, 2)] = rotation_angle.cos();
+    model * scale
+}
+
 
 pub(crate) fn get_projection_matrix(eye_fov: f64, aspect_ratio: f64, z_near: f64, z_far: f64) -> Matrix4<f64> {
     let mut projection: Matrix4<f64> = Matrix4::identity();
     /*  implement your code here  */
     let mut m_ortho: Matrix4<f64> = Matrix4::identity();
-    let total_height = (eye_fov / 2.0).tan() * z_near.abs() * 2.0;
-    m_ortho[(0, 0)] = 2.0 / (total_height * aspect_ratio);
-    m_ortho[(1, 1)] = 2.0 / (total_height);
-    m_ortho[(2, 2)] = 2.0 / (z_far - z_near);
+    let angle = eye_fov / 2.0 / 180.0 * PI;
+    let total_height = angle.tan() * z_near.abs() * 2.0; // DEBUGE REPORT : forget to convert into radius, used to be in degree
+    m_ortho[(0, 0)] = -2.0 / (total_height * aspect_ratio); // 应该有个负号
+    m_ortho[(1, 1)] = -2.0 / (total_height);
+    m_ortho[(2, 2)] = -2.0 / (z_far - z_near);
+    // println!("m_ortho {}", m_ortho);
     let mut m_ortho_translation: Matrix4<f64> = Matrix4::identity();
     m_ortho_translation[(2, 3)] = -(z_near + z_far) / 2.0;
+    // println!("m_translation {}", m_ortho_translation);
     m_ortho = m_ortho * m_ortho_translation;
     let mut m_persp: Matrix4<f64> = Matrix4::identity();
     m_persp[(0, 0)] = z_near;
@@ -100,9 +123,32 @@ pub(crate) fn get_projection_matrix(eye_fov: f64, aspect_ratio: f64, z_near: f64
     m_persp[(3, 2)] = 1.0;
     m_persp[(2, 3)] = -z_near * z_far;
     m_persp[(3, 3)] = 0.0;
-    projection = m_ortho * m_persp;
+    // println!("m_persp {}", m_persp);
+    projection = m_ortho * m_persp; 
     projection
 }
+
+pub(crate) fn get_NDC_to_screen(height: usize, width: usize, z_near: f64, z_far: f64) -> Matrix4<f64> {
+    let mut trans: Matrix4<f64> = Matrix4::identity();
+    trans[(0, 3)] = 1.0;
+    trans[(1, 3)] = 1.0;
+    let mut scale: Matrix4<f64> = Matrix4::identity();
+    scale[(0, 0)] = width as f64 / 2.0;
+    scale[(1, 1)] = height as f64 / 2.0;
+    let mut res = scale * trans;
+    res[(2, 3)] = (z_near + z_far) / 2.0;
+    res[(2, 2)] = (z_far - z_near) / 2.0;
+    res
+}
+
+
+
+
+
+
+
+
+
 
 pub(crate) fn frame_buffer2cv_mat(frame_buffer: &Vec<V3f>) -> Mat {
     let mut image = unsafe {
@@ -152,7 +198,7 @@ pub fn choose_shader_texture(method: &str,
         println!("Rasterizing using the normal shader");
         active_shader = normal_fragment_shader;
     } else if method == "texture" {
-        println!("Rasterizing using the normal shader");
+        println!("Rasterizing using the texture shader");
         active_shader = texture_fragment_shader;
         tex = Some(Texture::new(&(obj_path.to_owned() + "spot_texture.png")));
     } else if method == "phong" {
@@ -184,6 +230,73 @@ pub fn normal_fragment_shader(payload: &FragmentShaderPayload) -> V3f {
     result_color * 255.0
 }
 
+// ANXILIARY FUNCTIION
+fn element_wise_mul(v1: Vector3<f64>, v2: Vector3<f64>) -> Vector3<f64> {
+    Vector3::new(v1.x * v2.x, v1.y * v2.y, v1.z * v2.z)
+}
+
+fn compute_lights_to_color(
+    ka: Vector3<f64>, 
+    kd: Vector3<f64>, 
+    ks: Vector3<f64>, 
+    lights: &Vec<Light>, 
+    amb_light_intensity: Vector3<f64>, 
+    eye_pos: Vector3<f64>, 
+    p: f64, 
+    color: Vector3<f64>, /* [0, 1] */
+    point: Vector3<f64>, 
+    normal: Vector3<f64>
+) -> Vector3<f64> {
+    let mut result_color = Vector3::zeros(); // 保存光照结果
+    
+    let L_a = element_wise_mul(ka, amb_light_intensity);
+    result_color += L_a;
+
+    let n = normal.normalize();
+    // <遍历每一束光>
+    for light in lights {
+        // LAB3 TODO: For each light source in the code, calculate what the *ambient*, *diffuse*, and *specular* 
+        // components are. Then, accumulate that result on the *result_color* object.
+        let l: Vector3<f64> = (light.position - point).normalize();
+        let v: Vector3<f64> = (eye_pos - point).normalize();
+        let h: Vector3<f64> = (l + v).normalize();
+        let r = (light.position - point).norm();
+        let L_d = element_wise_mul(kd, light.intensity / (r * r)) * (n.dot(&l)).max(0.0);
+        let L_s = element_wise_mul(ks, light.intensity / (r * r)) * (n.dot(&h)).max(0.0).powf(p);
+
+        // println!("Curious at light pos {}, view pos {}\n", light.position, point);
+        // println!("Light A{} B{} C{} | l{}, v{}, h{}, n{}\n", L_a, L_d, L_s, l, v, h, n);
+        result_color += L_d + L_s;
+    }
+
+    result_color * 255.0
+}
+
+fn compute_bump_normal_point(normal: Vector3<f64>, point: Vector3<f64>, kh: f64, kn: f64, payload: &FragmentShaderPayload)
+-> (Vector3<f64>, Vector3<f64>) {
+    let n = normal.normalize();
+    let (x, y, z) = (n.x, n.y, n.z);
+    let t: Vector3<f64> = Vector3::new(x * y / (x * x + z * z).sqrt(),
+                                    (x * x + z * z).sqrt(),
+                                    z * y / (x * x + z * z).sqrt());
+    let b: Vector3<f64> = n.cross(&t);
+    let TBN: Matrix3<f64> = 
+        Matrix3::new(t[0], b[0], n[0],
+                    t[1], b[1], n[1],
+                    t[2], b[2], n[2]);
+    let (u, v) = (payload.tex_coords[0], payload.tex_coords[1]);
+    let texture = payload.texture.as_ref().unwrap().as_ref();
+    let h_basic = texture.get_color(u, v).norm();
+    let h_u = texture.get_color(u + 1.0 / texture.width as f64, v).norm();
+    let h_v = texture.get_color(u, v + 1.0 / texture.height as f64).norm();
+    let dU = kh * kn * (h_u - h_basic);
+    let dV = kh * kn * (h_v - h_basic);
+
+    let ln: Vector3<f64> = Vector3::new(-dU, -dV, 1.0);
+    ((TBN * ln).normalize(), point + kn * n * h_basic)
+}
+// END OF ANXILIARY FUNCTION
+
 pub fn phong_fragment_shader(payload: &FragmentShaderPayload) -> V3f {
     // 泛光、漫反射、高光系数
     let ka = Vector3::new(0.005, 0.005, 0.005);
@@ -206,20 +319,19 @@ pub fn phong_fragment_shader(payload: &FragmentShaderPayload) -> V3f {
     let p = 150.0;
 
     // ping point的信息
-    let normal = payload.normal;
-    let point = payload.view_pos;
     let color = payload.color;
+    let point = payload.view_pos;
+    let normal = payload.normal;
 
-    let mut result_color = Vector3::zeros(); // 保存光照结果
+    // let mut result_color = Vector3::zeros(); // 保存光照结果
     
-    // <遍历每一束光>
-    for light in lights {
-        // LAB3 TODO: For each light source in the code, calculate what the *ambient*, *diffuse*, and *specular* 
-        // components are. Then, accumulate that result on the *result_color* object.
-
-
-    }
-    result_color * 255.0
+    // // <遍历每一束光>
+    // for light in lights {
+    //     // LAB3 TODO: For each light source in the code, calculate what the *ambient*, *diffuse*, and *specular* 
+    //     // components are. Then, accumulate that result on the *result_color* object.
+    // }
+    // result_color * 255.0
+    compute_lights_to_color(ka, kd, ks, &lights, amb_light_intensity, eye_pos, p, color, point, normal)
 }
 
 pub fn texture_fragment_shader(payload: &FragmentShaderPayload) -> V3f {
@@ -227,9 +339,10 @@ pub fn texture_fragment_shader(payload: &FragmentShaderPayload) -> V3f {
     let texture_color: Vector3<f64> = match &payload.texture {
         // LAB3 TODO: Get the texture value at the texture coordinates of the current fragment
         // <获取材质颜色信息>
+        // Done
 
         None => Vector3::new(0.0, 0.0, 0.0),
-        Some(texture) => Vector3::new(0.0, 0.0, 0.0), // Do modification here
+        Some(texture) => texture.get_color(payload.tex_coords[0], payload.tex_coords[1]), // Do modification here
     };
     let kd = texture_color / 255.0; // 材质颜色影响漫反射系数
     let ks = Vector3::new(0.7937, 0.7937, 0.7937);
@@ -248,19 +361,23 @@ pub fn texture_fragment_shader(payload: &FragmentShaderPayload) -> V3f {
 
     let p = 150.0;
 
-    let color = texture_color;
+    let color = texture_color / 255.0; // modified here, / 255
     let point = payload.view_pos;
     let normal = payload.normal;
 
-    let mut result_color = Vector3::zeros();
+    // let mut result_color = Vector3::zeros();
 
-    for light in lights {
-        // LAB3 TODO: For each light source in the code, calculate what the *ambient*, *diffuse*, and *specular* 
-        // components are. Then, accumulate that result on the *result_color* object.
+    // for light in lights {
+    //     // LAB3 TODO: For each light source in the code, calculate what the *ambient*, *diffuse*, and *specular* 
+    //     // components are. Then, accumulate that result on the *result_color* object.
 
-    }
+    // }
 
-    result_color * 255.0
+    // result_color * 255.0
+    compute_lights_to_color(ka, kd, ks, 
+        &lights, amb_light_intensity, 
+        eye_pos, p, color, point, normal)
+    // DEBUG REPORT : mistaken amb_light_intensity for eye_pos for arguments
 }
 
 pub fn bump_fragment_shader(payload: &FragmentShaderPayload) -> V3f {
@@ -299,7 +416,7 @@ pub fn bump_fragment_shader(payload: &FragmentShaderPayload) -> V3f {
     // Normal n = normalize(TBN * ln)
 
     let mut result_color = Vector3::zeros();
-    result_color = normal;
+    result_color = compute_bump_normal_point(normal, point, kh, kn, payload).1;
 
     result_color * 255.0
 }
@@ -340,13 +457,16 @@ pub fn displacement_fragment_shader(payload: &FragmentShaderPayload) -> V3f {
     // Position p = p + kn * n * h(u,v)
     // Normal n = normalize(TBN * ln)
 
-    let mut result_color = Vector3::zeros();
-    for light in lights {
-        // LAB3 TODO: For each light source in the code, calculate what the *ambient*, *diffuse*, and *specular* 
-        // components are. Then, accumulate that result on the *result_color* object.
+    // let mut result_color = Vector3::zeros();
+    // for light in lights {
+    //     // LAB3 TODO: For each light source in the code, calculate what the *ambient*, *diffuse*, and *specular* 
+    //     // components are. Then, accumulate that result on the *result_color* object.
 
         
-    }
+    // }
 
-    result_color * 255.0
+    // result_color * 255.0
+
+    let (normal, point) = compute_bump_normal_point(normal, point, kh, kn, payload);
+    compute_lights_to_color(ka, kd, ks, &lights, amb_light_intensity, eye_pos, p, color, point, normal)
 }

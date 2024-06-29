@@ -8,13 +8,17 @@ pub use opencv::core::Vector;
 pub use crate::rasterizer3::{Buffer, Rasterizer};
 pub use crate::utils::*;
 pub use crate::shader::FragmentShaderPayload;
-pub use crate::texture::Texture;
+pub use crate::texture::{Texture, bilinear_coloring};
+
 
 pub fn t3(filename:String,method:String)-> Result<()>{
     println!("选择任务3");
+    println!("Bilinear Coloring On? {}", bilinear_coloring);
+    
     let obj_file = "./models/spot/spot_triangulated_good.obj";
     let triangles = load_triangles(&obj_file);
     let angle = 140.0;
+    // let angle = 0.0;
     let mut r = Rasterizer::new(700, 700);
     let obj_path = "./models/spot/".to_owned();
     let texture_path = "hmap.jpg".to_owned();
@@ -36,7 +40,12 @@ pub fn t3(filename:String,method:String)-> Result<()>{
 
 
     r.clear(Buffer::Both);
-    // r.set_model(get_model_matrix_lab3(angle));
+
+    r.set_model(get_model_matrix_lab3(angle));
+    // r.set_model(get_model_matrix_lab3(angle, 2.5));
+
+
+
     r.set_view(get_view_matrix(eye_pos));
     r.set_projection(get_projection_matrix(45.0, 1.0, 0.1, 50.0));
 
