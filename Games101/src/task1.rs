@@ -57,7 +57,7 @@ pub fn t1()-> Result<()>{
         }
 
         if axis_flag == false {
-            model = get_rotation_matrix(Vector3::new(1.0, 1.0, 1.0).normalize(), angle);
+            model = get_rotation_matrix(Vector3::new(1.0, 0.0, 0.0).normalize(), angle);
         } else {
             model = get_model_matrix(angle,1.0);
         }
