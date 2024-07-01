@@ -64,9 +64,21 @@ fn get_output_confirmation(file_name: &mut String, default_file_name: &String) -
 // main part
 
 fn ray_color(ray: &Ray) -> ColorType {
+    if hit_sphere(Point3::new(0.0, 0.0, -1.0), 0.5, &ray) {
+        return ColorType::new(1.0, 0.0, 0.0);
+    }
     let unit_direction = ray.dir.normalize();
     let a = 0.5*(unit_direction.y + 1.0);
     ColorType::new(1.0, 1.0, 1.0) * (1.0 - a) + ColorType::new(0.5, 0.7, 1.0) * a
+}
+
+fn hit_sphere(center: Point3, radius: f64, ray: &Ray) -> bool {
+    let oc = center - ray.orig;
+    let a = ray.dir.norm_squared();
+    let b = -2.0 * ray.dir.dot(&oc);
+    let c = oc.norm_squared() - radius * radius;
+    let discriminant = b * b - 4.0 * a * c;
+    discriminant >= 0.0
 }
 
 
@@ -129,8 +141,8 @@ fn main() {
             let pixel_center = pixel00_loc + (pixel_delta_u * i as f64) + (pixel_delta_v * j as f64);
             let ray_direction = pixel_center - camera_center;
             // println!("at [{}, {}] is [{} {} {}]", i, j, ray_direction.x, ray_direction.y, ray_direction.z);
-            let r = Ray::new(camera_center, ray_direction);
-            let pixel_color = ray_color(&r);
+            let ray = Ray::new(camera_center, ray_direction);
+            let pixel_color = ray_color(&ray);
 
             write_color_01(pixel_color, &mut img, i as usize, j as usize);
 
