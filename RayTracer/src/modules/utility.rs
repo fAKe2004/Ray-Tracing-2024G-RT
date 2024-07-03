@@ -1,0 +1,54 @@
+use crate::PI;
+
+use indicatif::{ProgressBar, ProgressStyle};
+use std::fs::File;
+use std::env;
+use std::io;
+
+pub fn degrees_to_radians(degrees: f64) -> f64 {
+  degrees * PI / 180.0
+}
+
+pub fn is_ci() -> bool {
+  option_env!("CI").unwrap_or_default() == "true"
+}
+
+pub fn get_ProgressBar(height: usize, width: usize) -> ProgressBar {
+  let bar: ProgressBar = if is_ci() {
+      ProgressBar::hidden()
+  } else {
+      ProgressBar::new((height * width) as u64)
+  };
+
+  bar.set_style(ProgressStyle::default_bar()
+  .template("{spinner:.green} Elapsed [{elapsed_precise}] [{wide_bar:.cyan/blue}] {pos}/{len} ({eta})")
+  .progress_chars("●▸▹⋅"));
+
+  bar
+}
+
+pub fn get_output_confirmation(file_name: &mut String, default_file_name: &String) -> bool {
+
+  let mut confirmation_input: String = String::default();
+  println!("Please confirm to write to {}. \n[\'y\' to confirm; 'n' to revert to default file path; otherwise, cancel]", file_name.clone());
+  let input = io::stdin().read_line(&mut confirmation_input);
+
+  match input {
+      Ok(_) => {
+          if confirmation_input.chars().nth(0) == Some('y') {
+              true
+          } else {
+              if confirmation_input.chars().nth(0) == Some('n') {
+                  println!("File name reverted to \"{}\"", default_file_name.clone());
+                  *file_name = default_file_name.clone();
+                  true
+              } else {
+                  false
+              }
+          }
+      },
+      Err(_) => {
+          false
+      }
+  }
+}

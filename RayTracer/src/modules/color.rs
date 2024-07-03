@@ -1,6 +1,6 @@
-pub use super::vec3::{*};
-pub use super::ray::{*};
-pub use super::hittable::{*};
+use super::vec3::{*};
+use super::ray::{*};
+use super::hittable::{*};
 
 use image::RgbImage;
 

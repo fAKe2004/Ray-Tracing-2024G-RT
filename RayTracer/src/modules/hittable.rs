@@ -1,10 +1,9 @@
 
 // hittable and hittable list
-pub use super::vec3::{*};
-pub use super::ray::{*};
-pub use super::interval::{*};
-
-pub use std::rc::Rc;
+use super::vec3::{*};
+use super::ray::{*};
+use super::interval::{*};
+use std::rc::Rc;
 
 
 pub struct HitRecord {
@@ -89,6 +88,12 @@ impl HittableList {
 
   pub fn add(&mut self, object : Object) {
     self.objects.push(object);
+  }
+
+  // convert into Object(aka. Rc<dyn Hittable>)
+  pub fn to_object(self) -> Rc<dyn Hittable> {
+    let rc: Rc<dyn Hittable> = Rc::new(self);
+    rc
   }
 }
 
