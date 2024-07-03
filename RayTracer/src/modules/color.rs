@@ -5,13 +5,30 @@ use super::ray::{*};
 use super::hittable::{*};
 use super::interval::{*};
 
-use image::RgbImage;
+use image::{RgbImage};
 
 // color type
 pub type ColorType = Vec3;
 
+pub fn linear_to_gamma(linear_component: f64) -> f64 {
+    if (linear_component > 0.0) {
+        linear_component.sqrt()
+    } else {
+        0.0
+    }
+}
 
-/// the multi-sample write_color() function
+pub fn linear_to_gamma_ColorType(pixel_color: ColorType) -> ColorType {
+    ColorType::new(
+        linear_to_gamma(pixel_color.x),
+        linear_to_gamma(pixel_color.y),
+        linear_to_gamma(pixel_color.z),
+    )
+}
+
+
+/// the multi-sample write_color() function 
+/// no gamma correction applied
 pub fn write_color_256(pixel_color: [u8; 3], img: &mut RgbImage, i: usize, j: usize) {
     let pixel = img.get_pixel_mut(i.try_into().unwrap(), j.try_into().unwrap());
     *pixel = image::Rgb(pixel_color);
@@ -24,8 +41,11 @@ pub fn convert_ColorType_to_u8Array(pixel_color: ColorType) -> [u8; 3] {
     [(x * 256.0) as u8, (y * 256.0) as u8, (z * 256.0) as u8]
 }
 
+// write color in ColorType (range [0, 1)) with gamma correction
 pub fn write_color_01(pixel_color: ColorType, img: &mut RgbImage, i: usize, j: usize) {
     let pixel = img.get_pixel_mut(i.try_into().unwrap(), j.try_into().unwrap());
+
+    let pixel_color = linear_to_gamma_ColorType(pixel_color);
 
     *pixel = image::Rgb(convert_ColorType_to_u8Array(pixel_color));
     // Write the translated [0,255] value of each color component.
