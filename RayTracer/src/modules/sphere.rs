@@ -32,9 +32,9 @@ impl Hittable for Sphere {
       } else {
         let sqrtd = discriminant.sqrt();
         root = (h - sqrtd) / a;
-        if !ray_t.surrends(root) {
+        if !ray_t.surrounds(root) {
           root = (h + sqrtd) / a;
-          ray_t.surrends(root)
+          ray_t.surrounds(root)
         } else {
           true
         }

@@ -4,9 +4,21 @@ use indicatif::{ProgressBar, ProgressStyle};
 use std::fs::File;
 use std::env;
 use std::io;
+use rand::Rng;
 
 pub fn degrees_to_radians(degrees: f64) -> f64 {
   degrees * PI / 180.0
+}
+
+pub fn rand_01() -> f64{
+    let mut rng = rand::thread_rng();
+    rng.gen_range(0.0..1.0)
+}
+
+// [min, max)
+pub fn rand_range(min: f64, max: f64) -> f64{
+    let mut rng = rand::thread_rng();
+    rng.gen_range(min..max)
 }
 
 pub fn is_ci() -> bool {

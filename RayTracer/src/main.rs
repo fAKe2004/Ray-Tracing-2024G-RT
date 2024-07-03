@@ -66,7 +66,7 @@ fn main() {
     
     let aspect_ratio = 16.0 / 9.0;
     let image_width = 800 as usize;
-    let cam: Camera = Camera::new(aspect_ratio, image_width);
+    let cam: Camera = Camera::new(aspect_ratio, image_width, 100);
 
 
     let mut world = HittableList::default();
