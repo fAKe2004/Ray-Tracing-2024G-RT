@@ -117,7 +117,9 @@ impl Camera {
   fn ray_color(&self, ray: &Ray, world: &Object) -> ColorType {
     let mut rec = HitRecord::default();
     if world.hit(ray, Interval::new(0.0, INFINITY), &mut rec) {
-        return 0.5 * (rec.normal + ColorType::ones());
+        // return 0.5 * (rec.normal + ColorType::ones());
+        let dir = Vec3::rand_on_hemisphere(rec.normal);
+        0.5 * self.ray_color(&Ray::new(rec.p, dir), world)
     } else {
         let unit_direction = ray.dir.normalize();
         let a = 0.5*(unit_direction.y + 1.0);
