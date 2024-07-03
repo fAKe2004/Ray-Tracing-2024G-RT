@@ -1,4 +1,6 @@
 use std::ops::{Add, AddAssign, Sub, SubAssign, Mul, MulAssign, Div, DivAssign, Neg};
+use super::utility::{*};
+use super::PI;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Vec3 {
@@ -8,6 +10,7 @@ pub struct Vec3 {
 }
 
 impl Vec3 {
+// constructors
     pub fn new(x: f64, y: f64, z: f64) -> Self {
         Self { x, y, z }
     }
@@ -19,6 +22,41 @@ impl Vec3 {
     pub fn zero() -> Self {
         Self::new(0.0, 0.0, 0.0)
     }
+
+    // note that it's not a unit vector
+    pub fn rand_01() -> Self {
+        Self::new(rand_01(), rand_01(), rand_01())
+    }
+
+    pub fn rand_range(min: f64, max: f64) -> Self {
+        Self::new(rand_range(min, max), rand_range(min, max), rand_range(min, max))
+    }
+
+    pub fn rand_in_unit_sphere() -> Self {
+        let mut r = Self::rand_range(-1.0, 1.0);
+        while r.norm_squared() > 1.0 || r.norm_squared() == 0.0 {
+            r = Self::rand_range(-1.0, 1.0);
+        }
+        r
+    }
+    pub fn rand_unit() -> Self {
+        // My approach
+        let phi = rand_range(0.0, PI);
+        let theta = rand_range(0.0, 2.0 * PI);
+        Vec3::new(phi.sin() * theta.cos(), phi.sin() * theta.sin(), phi.cos())
+
+        // textbook approach
+        // Self::rand_in_unit_sphere().normalize()
+    }
+    pub fn rand_on_hemisphere(normal: Vec3) -> Self {
+        let u = Self::rand_unit();
+        if u.dot(&normal) > 0.0 {u} else {-u}
+    }
+    
+
+
+
+// functions
 
     pub fn norm_squared(&self) -> f64 {
         self.x * self.x + self.y * self.y + self.z * self.z
