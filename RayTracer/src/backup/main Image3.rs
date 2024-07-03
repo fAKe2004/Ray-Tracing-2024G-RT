@@ -1,5 +1,6 @@
-mod modules;
-use modules::*;
+mod color;
+mod vec3;
+mod ray;
 
 // standard library
 use image::{ImageBuffer, RgbImage}; //接收render传回来的图片，在main中文件输出
@@ -8,6 +9,10 @@ use std::fs::File;
 use std::env;
 use std::io;
 
+// my library
+use color::{ColorType, convert_ColorType_to_u8Array, write_color_256, write_color_01};
+use vec3::{Vec3, Point3};
+use ray::Ray;
 
 // anxilliary part
 const AUTHOR: &str = "fAKe";
@@ -58,17 +63,23 @@ fn get_output_confirmation(file_name: &mut String, default_file_name: &String) -
 
 // main part
 
-fn ray_color(ray: &Ray, world: &Object) -> ColorType {
-    let mut rec = HitRecord::default();
-    if world.hit(ray, 0.0, INFINITY, &mut rec) {
-        return 0.5 * (rec.normal + ColorType::ones());
-    } else {
-        let unit_direction = ray.dir.normalize();
-        let a = 0.5*(unit_direction.y + 1.0);
-        ColorType::new(1.0, 1.0, 1.0) * (1.0 - a) + ColorType::new(0.5, 0.7, 1.0) * a
+fn ray_color(ray: &Ray) -> ColorType {
+    if hit_sphere(Point3::new(0.0, 0.0, -1.0), 0.5, &ray) {
+        return ColorType::new(1.0, 0.0, 0.0);
     }
+    let unit_direction = ray.dir.normalize();
+    let a = 0.5*(unit_direction.y + 1.0);
+    ColorType::new(1.0, 1.0, 1.0) * (1.0 - a) + ColorType::new(0.5, 0.7, 1.0) * a
 }
 
+fn hit_sphere(center: Point3, radius: f64, ray: &Ray) -> bool {
+    let oc = center - ray.orig;
+    let a = ray.dir.norm_squared();
+    let b = -2.0 * ray.dir.dot(&oc);
+    let c = oc.norm_squared() - radius * radius;
+    let discriminant = b * b - 4.0 * a * c;
+    discriminant >= 0.0
+}
 
 
 fn main() {
@@ -100,11 +111,10 @@ fn main() {
     let pixel00_loc = viewport_upper_left + (pixel_delta_u + pixel_delta_v) * 0.5;
     /*
       layout:
-      00 -> u(x)
+      00 -> u
       |
       V
-      v(-y)
-      looking into -z
+      v
     */
 
 
@@ -123,25 +133,7 @@ fn main() {
 
 // end of unrelated pre process
 
-    let mut world = HittableList::default();
-    world.add(Rc::new(
-            Sphere::new(
-                Point3::new(0.0, 0.0, -1.0), 0.5
-            )
-        )
-    );
-    world.add(Rc::new(
-        Sphere::new(    
-            Point3::new(0.0, -100.5, -1.0), 100.0
-        )
-    )
-);
-
-
-
     let mut img: RgbImage = ImageBuffer::new(width, height);
-
-    let world_rc: Rc<dyn Hittable> = Rc::new(world);
 
     for j in 0..height {
         for i in 0..width {
@@ -150,7 +142,7 @@ fn main() {
             let ray_direction = pixel_center - camera_center;
             // println!("at [{}, {}] is [{} {} {}]", i, j, ray_direction.x, ray_direction.y, ray_direction.z);
             let ray = Ray::new(camera_center, ray_direction);
-            let pixel_color = ray_color(&ray, &world_rc);
+            let pixel_color = ray_color(&ray);
 
             write_color_01(pixel_color, &mut img, i as usize, j as usize);
 

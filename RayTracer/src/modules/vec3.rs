@@ -63,7 +63,7 @@ impl Vec3 {
         if len == 0.0 {
             panic!("Vec3::normalize: Attempt to normalize a zero vector.");
         }
-        self.clone() / self.norm()
+        self.clone() / len
     }
 }
 

@@ -1,4 +1,6 @@
-use crate::vec3::Vec3;
+pub use super::vec3::{*};
+pub use super::ray::{*};
+pub use super::hittable::{*};
 
 use image::RgbImage;
 

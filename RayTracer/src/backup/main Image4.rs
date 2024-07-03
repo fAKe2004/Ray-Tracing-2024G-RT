@@ -1,5 +1,6 @@
-mod modules;
-use modules::*;
+mod color;
+mod vec3;
+mod ray;
 
 // standard library
 use image::{ImageBuffer, RgbImage}; //接收render传回来的图片，在main中文件输出
@@ -8,6 +9,10 @@ use std::fs::File;
 use std::env;
 use std::io;
 
+// my library
+use color::{ColorType, convert_ColorType_to_u8Array, write_color_256, write_color_01};
+use vec3::{Vec3, Point3};
+use ray::Ray;
 
 // anxilliary part
 const AUTHOR: &str = "fAKe";
@@ -58,10 +63,12 @@ fn get_output_confirmation(file_name: &mut String, default_file_name: &String) -
 
 // main part
 
-fn ray_color(ray: &Ray, world: &Object) -> ColorType {
-    let mut rec = HitRecord::default();
-    if world.hit(ray, 0.0, INFINITY, &mut rec) {
-        return 0.5 * (rec.normal + ColorType::ones());
+fn ray_color(ray: &Ray) -> ColorType {
+    let center = Point3::new(0.0, 0.0, -1.0);
+    let t = hit_sphere(center, 0.5, &ray);
+    if t > 0.0 {
+        let n = (ray.at(t) - center).normalize();
+        (n + ColorType::ones()) / 2.0
     } else {
         let unit_direction = ray.dir.normalize();
         let a = 0.5*(unit_direction.y + 1.0);
@@ -69,6 +76,20 @@ fn ray_color(ray: &Ray, world: &Object) -> ColorType {
     }
 }
 
+fn hit_sphere(center: Point3, radius: f64, ray: &Ray) -> f64 {
+    let oc = center - ray.orig;
+    let a = ray.dir.norm_squared();
+    // let b = -2.0 * ray.dir.dot(&oc);
+    let h = ray.dir.dot(&oc);
+    let c = oc.norm_squared() - radius * radius;
+    let discriminant = h * h - a * c;
+
+    if (discriminant < 0.0) {
+        -1.0
+    } else {
+        (h - discriminant.sqrt()) / a
+    }
+}
 
 
 fn main() {
@@ -123,25 +144,7 @@ fn main() {
 
 // end of unrelated pre process
 
-    let mut world = HittableList::default();
-    world.add(Rc::new(
-            Sphere::new(
-                Point3::new(0.0, 0.0, -1.0), 0.5
-            )
-        )
-    );
-    world.add(Rc::new(
-        Sphere::new(    
-            Point3::new(0.0, -100.5, -1.0), 100.0
-        )
-    )
-);
-
-
-
     let mut img: RgbImage = ImageBuffer::new(width, height);
-
-    let world_rc: Rc<dyn Hittable> = Rc::new(world);
 
     for j in 0..height {
         for i in 0..width {
@@ -150,7 +153,7 @@ fn main() {
             let ray_direction = pixel_center - camera_center;
             // println!("at [{}, {}] is [{} {} {}]", i, j, ray_direction.x, ray_direction.y, ray_direction.z);
             let ray = Ray::new(camera_center, ray_direction);
-            let pixel_color = ray_color(&ray, &world_rc);
+            let pixel_color = ray_color(&ray);
 
             write_color_01(pixel_color, &mut img, i as usize, j as usize);
 

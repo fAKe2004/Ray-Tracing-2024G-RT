@@ -1,4 +1,4 @@
-use crate::vec3::{Vec3, Point3};
+use super::vec3::*;
 
 pub struct Ray {
   pub orig: Point3,
@@ -12,7 +12,7 @@ impl Ray {
       dir,
     }
   }
-  pub fn at(self, t: f64) -> Point3 {
+  pub fn at(&self, t: f64) -> Point3 {
     self.orig + self.dir * t
   }
 }
