@@ -1,6 +1,8 @@
+
 // hittable and hittable list
 pub use super::vec3::{*};
 pub use super::ray::{*};
+pub use super::interval::{*};
 
 pub use std::rc::Rc;
 
@@ -12,9 +14,15 @@ pub struct HitRecord {
   pub front_surface: bool
 }
 
+
+// Hittable Trait
 pub trait Hittable {
-  fn hit(&self, ray: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool;
+  fn hit(&self, ray: &Ray, ray_t: Interval, rec: &mut HitRecord) -> bool;
 }
+
+
+
+
 
 impl HitRecord {
   pub fn new(p: Point3, normal: Vec3, t: f64, front_surface: bool) -> Self {
@@ -85,18 +93,16 @@ impl HittableList {
 }
 
 impl Hittable for HittableList {
-  fn hit(&self, ray: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool {
+  fn hit(&self, ray: &Ray, ray_t: Interval, rec: &mut HitRecord) -> bool {
     let mut tmp_rec = HitRecord::default();
     let mut hit_anything = false;
-    let mut closest_root = t_max;
+    let mut closest_root = ray_t.max;
 
     for object in &self.objects {
-      if object.hit(ray, t_min, t_max, &mut tmp_rec) {
+      if object.hit(ray, Interval::new(ray_t.min, closest_root), &mut tmp_rec) {
         hit_anything = true;
-        if tmp_rec.t < closest_root {
-          closest_root = tmp_rec.t;
-          *rec = tmp_rec;
-        }
+        closest_root = tmp_rec.t;
+        *rec = tmp_rec;
       }
     }
 

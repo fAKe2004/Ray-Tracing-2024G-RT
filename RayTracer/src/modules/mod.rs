@@ -13,9 +13,11 @@ pub mod ray;
 pub mod vec3;
 pub mod hittable;
 pub mod sphere;
+pub mod interval;
 
 pub use color::{*};
 pub use ray::{*};
 pub use hittable::{*};
 pub use vec3::{*};
 pub use sphere::{*};
+pub use interval::{*};

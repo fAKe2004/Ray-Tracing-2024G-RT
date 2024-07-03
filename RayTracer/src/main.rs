@@ -60,7 +60,7 @@ fn get_output_confirmation(file_name: &mut String, default_file_name: &String) -
 
 fn ray_color(ray: &Ray, world: &Object) -> ColorType {
     let mut rec = HitRecord::default();
-    if world.hit(ray, 0.0, INFINITY, &mut rec) {
+    if world.hit(ray, Interval::new(0.0, INFINITY), &mut rec) {
         return 0.5 * (rec.normal + ColorType::ones());
     } else {
         let unit_direction = ray.dir.normalize();
