@@ -41,6 +41,11 @@ pub fn get_ProgressBar(height: usize, width: usize) -> ProgressBar {
 
 pub fn get_output_confirmation(file_name: &mut String, default_file_name: &String) -> bool {
 
+  if file_name == default_file_name {
+    println!("File name is default; confirmation procedure skipped.");
+    return true
+  }
+
   let mut confirmation_input: String = String::default();
   println!("Please confirm to write to {}. \n[\'y\' to confirm; 'n' to revert to default file path; otherwise, cancel]", file_name.clone());
   let input = io::stdin().read_line(&mut confirmation_input);

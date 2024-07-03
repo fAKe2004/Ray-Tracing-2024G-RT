@@ -1,3 +1,5 @@
+use super::EPS;
+
 use super::vec3::{*};
 use super::ray::{*};
 use super::hittable::{*};
@@ -17,7 +19,7 @@ pub fn write_color_256(pixel_color: [u8; 3], img: &mut RgbImage, i: usize, j: us
 }
 
 pub fn convert_ColorType_to_u8Array(pixel_color: ColorType) -> [u8; 3] {
-    let intensity: Interval = Interval::new(0.0, 1.0 - 1e-4);
+    let intensity: Interval = Interval::new(0.0, 1.0 - EPS);
     let (x, y, z) = (intensity.clamp(pixel_color.x), intensity.clamp(pixel_color.y), intensity.clamp(pixel_color.z));
     [(x * 256.0) as u8, (y * 256.0) as u8, (z * 256.0) as u8]
 }
