@@ -66,14 +66,15 @@ fn main() {
     
     let aspect_ratio = 16.0 / 9.0;
     let image_width = 800 as usize;
-    let sample_per_pixel = 100 as usize;
+    // let sample_per_pixel = 100 as usize;
+    let sample_per_pixel = 10 as usize;
     let max_ray_depth = 50 as usize;
     let cam: Camera = Camera::new(aspect_ratio, image_width, sample_per_pixel, max_ray_depth);
 
     let material_ground: Material = Rc::new(Lambertian::new(ColorType::new(0.8, 0.8, 0.0)));
     let material_center: Material = Rc::new(Lambertian::new(ColorType::new(0.1, 0.2, 0.5)));
-    let material_left: Material = Rc::new(Metal::new(ColorType::new(0.8, 0.8, 0.8)));
-    let material_right: Material = Rc::new(Metal::new(ColorType::new(0.8, 0.6, 0.2)));
+    let material_left: Material = Rc::new(Metal::new(ColorType::new(0.8, 0.8, 0.8), 0.3));
+    let material_right: Material = Rc::new(Metal::new(ColorType::new(0.8, 0.6, 0.2), 1.0));
 
 
     let mut world = HittableList::default();
