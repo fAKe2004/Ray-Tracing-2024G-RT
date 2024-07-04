@@ -1,18 +1,23 @@
+use crate::Material;
+
 use super::vec3::{*};
 use super::ray::{*};
 use super::hittable::{*};
 use super::interval::{*};
+use super::material::{*};
 
 pub struct Sphere {
   pub center: Point3,
   pub radius: f64,
+  pub mat: Material,
 }
 
 impl Sphere {
-  pub fn new(center: Point3, radius: f64) -> Self {
+  pub fn new(center: Point3, radius: f64, mat: Material) -> Self {
     Sphere {
       center,
       radius,
+      mat,
     }
   }
 }
@@ -44,7 +49,7 @@ impl Hittable for Sphere {
       return false;
     }
     
-    *rec = HitRecord::new_from_ray_and_outward_normal(ray, ray.at(root) - self.center, root);
+    *rec = HitRecord::new_from_ray_and_outward_normal(ray, ray.at(root) - self.center, self.mat.clone(), root);
 
     true
   }

@@ -12,6 +12,9 @@ impl Ray {
       dir,
     }
   }
+  pub fn default() -> Self {
+    Ray::new(Point3::zero(), Vec3::zero())
+  }
   pub fn at(&self, t: f64) -> Point3 {
     self.orig + self.dir * t
   }

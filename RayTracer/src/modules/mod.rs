@@ -15,6 +15,7 @@ pub mod hittable;
 pub mod sphere;
 pub mod interval;
 pub mod camera;
+pub mod material;
 
 pub use utility::{*};
 pub use color::{*};
@@ -24,3 +25,4 @@ pub use vec3::{*};
 pub use sphere::{*};
 pub use interval::{*};
 pub use camera::{*};
+pub use material::{*};

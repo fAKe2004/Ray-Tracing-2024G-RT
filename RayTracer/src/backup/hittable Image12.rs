@@ -3,14 +3,12 @@
 use super::vec3::{*};
 use super::ray::{*};
 use super::interval::{*};
-use super::material::{*};
 use std::rc::Rc;
 
 
 pub struct HitRecord {
   pub p: Point3,
   pub normal: Vec3,
-  pub mat: Material,
   pub t: f64,
   pub front_surface: bool
 }
@@ -21,38 +19,34 @@ pub trait Hittable {
   fn hit(&self, ray: &Ray, ray_t: Interval, rec: &mut HitRecord) -> bool;
 }
 
-// use Rc::new, instead of Object::new btw
-pub type Object = Rc<dyn Hittable>; // Shared Ptr
 
 
 
 
 impl HitRecord {
-  pub fn new(p: Point3, normal: Vec3, mat: Material, t: f64, front_surface: bool) -> Self {
+  pub fn new(p: Point3, normal: Vec3, t: f64, front_surface: bool) -> Self {
     HitRecord {
       p,
       normal,
-      mat,
       t,
       front_surface,
     }
   }
 
-  pub fn new_from_ray_and_outward_normal(ray: &Ray, outward_normal: Vec3, mat: Material, t: f64) -> Self{
+  pub fn new_from_ray_and_outward_normal(ray: &Ray, outward_normal: Vec3, t: f64) -> Self{
     let front_surface = ray.dir.dot(&outward_normal) < 0.0;
     let outward_normal = outward_normal.normalize();
     
     HitRecord {
       p: ray.at(t),
       normal: if front_surface {outward_normal} else {-outward_normal},
-      mat,
       t,
       front_surface,
     }
   }
 
   pub fn default() -> Self {
-    Self::new(Point3::zero(), Vec3::zero(), Rc::new(DefaultMaterial::new()) , 0.0, false)
+    Self::new(Point3::zero(), Vec3::zero(), 0.0, false)
   }
 }
 
@@ -61,15 +55,16 @@ impl Clone for HitRecord {
     HitRecord {
       p: self.p,
       normal: self.normal,
-      mat: self.mat.clone(),
       t: self.t,
       front_surface: self.front_surface,
     }
   }
 }
-// impl Copy for HitRecord {
-// }
+impl Copy for HitRecord {
+}
 
+// use Rc::new, instead of Object::new btw
+pub type Object = Rc<dyn Hittable>; // Shared Ptr
 
 pub struct HittableList {
   pub objects: Vec<Object>
@@ -112,7 +107,7 @@ impl Hittable for HittableList {
       if object.hit(ray, Interval::new(ray_t.min, closest_root), &mut tmp_rec) {
         hit_anything = true;
         closest_root = tmp_rec.t;
-        *rec = tmp_rec.clone();
+        *rec = tmp_rec;
       }
     }
 

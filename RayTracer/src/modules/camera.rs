@@ -126,8 +126,15 @@ impl Camera {
 
     let mut rec = HitRecord::default();
     if world.hit(ray, Interval::new(EPS /* fix shadow acne */, INFINITY), &mut rec) {
-        let dir = Vec3::rand_on_hemisphere(rec.normal) + rec.normal; // Lambertian Reflection
-        0.5 * self.ray_color(&Ray::new(rec.p, dir), depth + 1, world)
+      let mut scattered = Ray::default();
+      let mut attenuation = ColorType::zero();
+      // let dir = Vec3::rand_on_hemisphere(rec.normal) + rec.normal; // Lambertian Reflection
+      // 0.5 * self.ray_color(&Ray::new(rec.p, dir), depth + 1, world)
+      if rec.mat.scatter(ray, &rec, &mut attenuation, &mut scattered) {
+        attenuation.elemul(&self.ray_color(&scattered, depth + 1, world))
+      } else {
+        ColorType::zero()
+      }
     } else {
         let unit_direction = ray.dir.normalize();
         let a = 0.5*(unit_direction.y + 1.0);

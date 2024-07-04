@@ -1,6 +1,8 @@
 use std::ops::{Add, AddAssign, Sub, SubAssign, Mul, MulAssign, Div, DivAssign, Neg};
+
 use super::utility::{*};
 use super::PI;
+use super::EPS;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Vec3 {
@@ -102,6 +104,16 @@ impl Vec3 {
             panic!("Vec3::normalize: Attempt to normalize a zero vector.");
         }
         self.clone() / len
+    }
+
+
+    pub fn near_zero(&self) -> bool {
+        self.norm() < EPS
+    }
+
+// reflection
+    pub fn reflect(v: Vec3, n: Vec3) -> Vec3 {
+        v - 2.0 * Vec3::dot(&v, &n) * n
     }
 }
 
