@@ -73,7 +73,7 @@ fn main() {
 
     let material_ground: Material = Rc::new(Lambertian::new(ColorType::new(0.8, 0.8, 0.0)));
     let material_center: Material = Rc::new(Lambertian::new(ColorType::new(0.1, 0.2, 0.5)));
-    let material_left: Material = Rc::new(Dielectric::new(1.5));
+    let material_left: Material = Rc::new(Dielectric::new(1.00 / 1.33)); // air to water
     let material_right: Material = Rc::new(Metal::new(ColorType::new(0.8, 0.6, 0.2), 1.0));
 
 

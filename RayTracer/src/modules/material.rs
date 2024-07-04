@@ -98,9 +98,21 @@ impl Scatter for Dielectric {
   fn scatter(&self, ray_in: &Ray, rec: &HitRecord, attunation: &mut ColorType, scattered: &mut Ray) -> bool {
     *attunation = ColorType::ones();
     let ratio = if rec.front_surface { 1.0 / self.refraction_index } else { self.refraction_index };
-    let refracted = Vec3::refract(ray_in.dir.normalize(), rec.normal, ratio);
+    
+    let unit_direction =  ray_in.dir.normalize();
+    let cos_theta = -unit_direction.dot(&rec.normal).min(1.0);
+    let sin_theta = (1.0 as f64 - cos_theta * cos_theta).sqrt();
 
-    *scattered = Ray::new(rec.p, refracted);
+    let cannot_refract = ratio * sin_theta > 1.0;
+    
+    let scattered_direction = 
+      if cannot_refract {
+        Vec3::reflect(ray_in.dir.normalize(), rec.normal)
+      } else {
+        Vec3::refract(ray_in.dir.normalize(), rec.normal, ratio)
+      };
+
+    *scattered = Ray::new(rec.p, scattered_direction);
     true
   }
 }
