@@ -9,7 +9,7 @@ use std::rc::Rc;
 
 pub struct HitRecord {
   pub p: Point3,
-  pub normal: Vec3,
+  pub normal: Vec3, // expected to be unit vector
   pub mat: Material,
   pub t: f64,
   pub front_surface: bool
@@ -31,7 +31,7 @@ impl HitRecord {
   pub fn new(p: Point3, normal: Vec3, mat: Material, t: f64, front_surface: bool) -> Self {
     HitRecord {
       p,
-      normal,
+      normal: if normal.near_zero() { normal } else { normal.normalize() },
       mat,
       t,
       front_surface,

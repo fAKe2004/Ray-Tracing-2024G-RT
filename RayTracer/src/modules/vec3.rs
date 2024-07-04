@@ -112,8 +112,15 @@ impl Vec3 {
     }
 
 // reflection
-    pub fn reflect(v: Vec3, n: Vec3) -> Vec3 {
+    pub fn reflect(v: Vec3, n /* unit */: Vec3) -> Vec3 {
         v - 2.0 * Vec3::dot(&v, &n) * n
+    }
+// refraction
+    pub fn refract(uv/* unit v */: Vec3, n /* unit */: Vec3, ratio /* eta_i over eta_t*/: f64) -> Vec3 {
+        let cos_theta: f64 = n.dot(&(-uv)).min(1.0);
+        let r_out_perp: Vec3 = ratio * (uv + cos_theta * n);
+        let r_out_parallel: Vec3 = -(1.0 - r_out_perp.norm_squared()).abs().sqrt() * n;
+        r_out_perp + r_out_parallel
     }
 }
 

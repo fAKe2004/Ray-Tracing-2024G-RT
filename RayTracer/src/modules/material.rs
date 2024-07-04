@@ -25,6 +25,7 @@ impl Scatter for DefaultMaterial {
     false
   }
 }
+
 // Lambertian
 pub struct Lambertian{
   albedo: ColorType,
@@ -75,5 +76,31 @@ impl Scatter for Metal {
     *scattered = Ray::new(rec.p, reflected);
     *attunation = self.albedo;
     Vec3::dot(&scattered.dir, &rec.normal) > 0.0
+  }
+}
+
+
+
+// Dielectric
+pub struct Dielectric {
+  refraction_index: f64,
+}
+
+impl Dielectric {
+  pub fn new(refraction_index: f64) -> Self {
+    Dielectric {
+      refraction_index,
+    }
+  }
+}
+
+impl Scatter for Dielectric {
+  fn scatter(&self, ray_in: &Ray, rec: &HitRecord, attunation: &mut ColorType, scattered: &mut Ray) -> bool {
+    *attunation = ColorType::ones();
+    let ratio = if rec.front_surface { 1.0 / self.refraction_index } else { self.refraction_index };
+    let refracted = Vec3::refract(ray_in.dir.normalize(), rec.normal, ratio);
+
+    *scattered = Ray::new(rec.p, refracted);
+    true
   }
 }
