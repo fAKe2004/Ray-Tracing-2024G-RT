@@ -5,7 +5,7 @@ pub const EPS: f64 = 1e-4;
 
 
 
-pub use std::rc::Rc;
+pub use std::sync::Arc;
 
 pub mod utility;
 pub mod color;
@@ -14,8 +14,8 @@ pub mod vec3;
 pub mod hittable;
 pub mod sphere;
 pub mod interval;
-pub mod camera;
-// pub mod camera_multithreading;
+// pub mod camera;
+pub mod camera_multithreading;
 pub mod material;
 
 
@@ -26,6 +26,6 @@ pub use hittable::{*};
 pub use vec3::{*};
 pub use sphere::{*};
 pub use interval::{*};
-pub use camera::{*};
-// pub use camera_multithreading::{*};
+// pub use camera::{*};
+pub use camera_multithreading::{*};
 pub use material::{*};

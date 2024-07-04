@@ -3,7 +3,7 @@
 use super::vec3::{*};
 use super::ray::{*};
 use super::interval::{*};
-use std::rc::Rc;
+use std::sync::Arc;
 
 
 pub struct HitRecord {
@@ -63,8 +63,8 @@ impl Clone for HitRecord {
 impl Copy for HitRecord {
 }
 
-// use Rc::new, instead of Object::new btw
-pub type Object = Rc<dyn Hittable>; // Shared Ptr
+// use Arc::new, instead of Object::new btw
+pub type Object = Arc<dyn Hittable>; // Shared Ptr
 
 pub struct HittableList {
   pub objects: Vec<Object>
@@ -90,9 +90,9 @@ impl HittableList {
     self.objects.push(object);
   }
 
-  // convert into Object(aka. Rc<dyn Hittable>)
-  pub fn to_object(self) -> Rc<dyn Hittable> {
-    let rc: Rc<dyn Hittable> = Rc::new(self);
+  // convert into Object(aka. Arc<dyn Hittable>)
+  pub fn to_object(self) -> Arc<dyn Hittable> {
+    let rc: Arc<dyn Hittable> = Arc::new(self);
     rc
   }
 }

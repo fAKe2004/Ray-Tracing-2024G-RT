@@ -124,13 +124,13 @@ fn main() {
 // end of unrelated pre process
 
     let mut world = HittableList::default();
-    world.add(Rc::new(
+    world.add(Arc::new(
             Sphere::new(
                 Point3::new(0.0, 0.0, -1.0), 0.5
             )
         )
     );
-    world.add(Rc::new(
+    world.add(Arc::new(
         Sphere::new(    
             Point3::new(0.0, -100.5, -1.0), 100.0
         )
@@ -141,7 +141,7 @@ fn main() {
 
     let mut img: RgbImage = ImageBuffer::new(width, height);
 
-    let world_rc: Rc<dyn Hittable> = Rc::new(world);
+    let world_rc: Arc<dyn Hittable> = Arc::new(world);
 
     for j in 0..height {
         for i in 0..width {

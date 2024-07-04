@@ -4,7 +4,7 @@ use super::vec3::{*};
 use super::ray::{*};
 use super::interval::{*};
 use super::material::{*};
-use std::rc::Rc;
+use std::sync::Arc;
 
 
 pub struct HitRecord {
@@ -21,8 +21,8 @@ pub trait Hittable {
   fn hit(&self, ray: &Ray, ray_t: Interval, rec: &mut HitRecord) -> bool;
 }
 
-// use Rc::new, instead of Object::new btw
-pub type Object = Rc<dyn Hittable>; // Shared Ptr
+// use Arc::new, instead of Object::new btw
+pub type Object = Arc<dyn Hittable + Send + Sync>; // Shared Ptr
 
 
 
@@ -52,7 +52,7 @@ impl HitRecord {
   }
 
   pub fn default() -> Self {
-    Self::new(Point3::zero(), Vec3::zero(), Rc::new(DefaultMaterial::new()) , 0.0, false)
+    Self::new(Point3::zero(), Vec3::zero(), Arc::new(DefaultMaterial::new()) , 0.0, false)
   }
 }
 
@@ -95,9 +95,9 @@ impl HittableList {
     self.objects.push(object);
   }
 
-  // convert into Object(aka. Rc<dyn Hittable>)
-  pub fn to_object(self) -> Rc<dyn Hittable> {
-    let rc: Rc<dyn Hittable> = Rc::new(self);
+  // convert into Object(aka. Arc<dyn Hittable>)
+  pub fn to_object(self) -> Object {
+    let rc: Object = Arc::new(self);
     rc
   }
 }

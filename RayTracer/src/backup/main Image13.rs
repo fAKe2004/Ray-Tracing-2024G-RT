@@ -71,34 +71,34 @@ fn main() {
     let max_ray_depth = 50 as usize;
     let cam: Camera = Camera::new(aspect_ratio, image_width, sample_per_pixel, max_ray_depth);
 
-    let material_ground: Material = Rc::new(Lambertian::new(ColorType::new(0.8, 0.8, 0.0)));
-    let material_center: Material = Rc::new(Lambertian::new(ColorType::new(0.1, 0.2, 0.5)));
-    let material_left: Material = Rc::new(Metal::new(ColorType::new(0.8, 0.8, 0.8), 0.3));
-    let material_right: Material = Rc::new(Metal::new(ColorType::new(0.8, 0.6, 0.2), 1.0));
+    let material_ground: Material = Arc::new(Lambertian::new(ColorType::new(0.8, 0.8, 0.0)));
+    let material_center: Material = Arc::new(Lambertian::new(ColorType::new(0.1, 0.2, 0.5)));
+    let material_left: Material = Arc::new(Metal::new(ColorType::new(0.8, 0.8, 0.8), 0.3));
+    let material_right: Material = Arc::new(Metal::new(ColorType::new(0.8, 0.6, 0.2), 1.0));
 
 
     let mut world = HittableList::default();
-    world.add(Rc::new(
+    world.add(Arc::new(
         Sphere::new(    
             Point3::new(0.0, -100.5, -1.0), 100.0, material_ground
         )
     )
     );
-    world.add(Rc::new(
+    world.add(Arc::new(
             Sphere::new(
                 Point3::new(0.0, 0.0, -1.2), 0.5, material_center
             )
         )
     );
 
-    world.add(Rc::new(
+    world.add(Arc::new(
             Sphere::new(
                 Point3::new(-1.0, 0.0, -1.0), 0.5, material_left
             )
         )
     );
 
-    world.add(Rc::new(
+    world.add(Arc::new(
             Sphere::new(
                 Point3::new(1.0, 0.0, -1.0), 0.5, material_right
             )

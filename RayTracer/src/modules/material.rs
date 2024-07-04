@@ -5,13 +5,13 @@ use super::interval::{*};
 use super::hittable::{*};
 use super::color::{*};
 use super::utility::{*};
-use std::rc::Rc;
+use std::sync::Arc;
 
 pub trait Scatter {
   fn scatter(&self, ray_in: &Ray, rec: &HitRecord, attunation: &mut ColorType, scattered: &mut Ray) -> bool;
 }
 
-pub type Material = Rc<dyn Scatter>;
+pub type Material = Arc<dyn Scatter + Sync + Send>;
 
 pub struct DefaultMaterial {
 }

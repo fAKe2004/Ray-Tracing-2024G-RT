@@ -6,7 +6,7 @@ use super::utility::{*};
 use super::interval::{*};
 use super::INFINITY;
 
-use std::rc::Rc;
+use std::sync::Arc;
 use image::{ImageBuffer, RgbImage}; 
 use indicatif::{ProgressBar, ProgressStyle};
 

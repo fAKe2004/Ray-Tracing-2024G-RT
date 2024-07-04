@@ -1,14 +1,18 @@
+// Not Finished
+
 use super::EPS;
 
 use super::vec3::{*};
 use super::ray::{*};
 use super::hittable::{*};
 use super::color::{*};
+use super::color::ColorType;
 use super::utility::{*};
 use super::interval::{*};
 use super::INFINITY;
 
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
+use crossbeam::thread;
 use image::{ImageBuffer, RgbImage}; 
 use indicatif::{ProgressBar, ProgressStyle};
 
@@ -77,30 +81,6 @@ impl Camera {
     cam
   }
 
-  
-  pub fn render(&self, world: &Object) -> RgbImage {
-    let mut img: RgbImage = ImageBuffer::new(self.image_width as u32, self.image_height as u32);
-
-    println!("[Render progress]:");
-    let bar = get_ProgressBar(self.image_height, self.image_width);
-
-    for j in 0..self.image_height {
-      for i in 0..self.image_width {
-        let mut pixel_color = ColorType::zero();
-        for _ in 0..self.sample_per_pixel {
-          let ray = self.get_ray(i, j);
-          pixel_color += self.ray_color(&ray, 0 as usize, &world);
-        }
-        pixel_color *= self.pixel_samples_scale;
-        write_color_01(pixel_color, &mut img, i as usize, j as usize);
-        
-        bar.inc(1);
-      }
-    }
-    bar.finish();
-    img
-  }
-  
 
   // private function 
   fn initialize(&mut self) {
@@ -201,4 +181,89 @@ impl Camera {
     }
   }
 
+
+
+
+
+
+
+  pub fn render(&self, world: &Object) -> RgbImage { // multi-core
+    let mut img: RgbImage = ImageBuffer::new(self.image_width as u32, self.image_height as u32);
+
+    println!("[Render progress]:");
+    let bar = get_ProgressBar(self.image_height, self.image_width);
+    let bar_wrapper = Arc::new(&bar);
+
+    const HEIGHT_PARTITION: usize = 3;
+    const WIDTH_PARTITION: usize = 3;
+
+    let camera = Arc::new(self.clone());
+    let world = Arc::new(world);
+    let img_mtx = Arc::new(Mutex::new(&mut img));
+
+    thread::scope(move |thd|{
+      
+      let chunk_height = (self.image_height + HEIGHT_PARTITION - 1) / HEIGHT_PARTITION;
+      let chunk_width = (self.image_width + WIDTH_PARTITION - 1) / WIDTH_PARTITION;
+      for j in 0..HEIGHT_PARTITION {
+        for i in 0..WIDTH_PARTITION {
+          let camera = Arc::clone(&camera);
+          let world = Arc::clone(&world);
+          let img_mtx = Arc::clone(&img_mtx);
+          let bar = Arc::clone(&bar_wrapper);
+
+          let _ = thd.spawn(move |_| {
+            println!("subtask ({}, {}) activated", i, j);
+            camera.render_sub(&world, &img_mtx, &bar, 
+              i * chunk_width, (i + 1) * chunk_width, 
+              j * chunk_height, (j + 1) * chunk_height);
+            // println!("subtask ({}, {}) done", i, j);
+          });
+
+        }
+      }
+    }).unwrap();
+
+    bar.finish();
+    img
+  }
+  
+  pub fn render_sub(&self, world: &Object, img_mtx: &Mutex<&mut RgbImage>, bar: &ProgressBar, x_min: usize, x_max: usize, y_min: usize, y_max: usize) {
+    let x_min = x_min.max(0);
+    let y_min = y_min.max(0);
+    let x_max = x_max.min(self.image_width);
+    let y_max = y_max.min(self.image_height);
+
+    let mut buff: Vec<Vec<ColorType>> = vec![vec![ColorType::zero(); y_max - y_min]; x_max - x_min];
+    for j in y_min..y_max {
+        for i in x_min..x_max {
+          let mut pixel_color = ColorType::zero();
+          for _ in 0..self.sample_per_pixel {
+            let ray = self.get_ray(i, j);
+            pixel_color += self.ray_color(&ray, 0 as usize, &world);
+          }
+          pixel_color *= self.pixel_samples_scale;
+
+          buff[i - x_min][j - y_min] = pixel_color;
+          // bar.inc(1); // fact: bar.inc 相当慢，脱了速度
+        }
+        bar.inc((x_max - x_min) as u64);
+      }
+      let mut img = img_mtx.lock().unwrap();
+      for j in y_min..y_max {
+        for i in x_min..x_max {
+          write_color_01(buff[i - x_min][j - y_min], &mut img, i, j);
+        }
+      }
+  }
+
+
+}
+
+impl Clone for Camera {
+  fn clone(&self) -> Self {
+    Camera {
+      ..*self
+    }
+  }
 }
