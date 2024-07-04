@@ -7,7 +7,6 @@ use indicatif::{ProgressBar, ProgressStyle};
 use std::fs::File;
 use std::env;
 use std::io;
-use color::ColorType;
 
 
 // anxilliary part
@@ -28,7 +27,7 @@ fn init_prompt() -> (String, String, String, u8) {
 
     println!("[Ray Tracer]");
     if args.len() < 2 {
-        println!("Info: No output file specified, using default file path: \"{}{}\"", path, file_name);
+        println!("Info: No output file specified, using default file path: \"{}{}\"``", path, file_name);
     } else {
         file_name = args[1].clone();
         println!("Info: Output file specified as \"{}{}\"", path, file_name);
@@ -58,24 +57,20 @@ fn tail_process(img: RgbImage, parameters: (String, String, String, u8), author:
     println!("Render finished with success.");
 }
 
-fn build_camera() -> Camera {
+// main part
+
+fn main() {
+
+    let parameters = init_prompt();
+
+    
     let aspect_ratio = 16.0 / 9.0;
     let image_width = 800 as usize;
     let sample_per_pixel = 100 as usize;
     // let sample_per_pixel = 10 as usize;
     let max_ray_depth = 50 as usize;
-    let vfov = 20.0;
-    
-    let lookfrom = Point3::new(-2.0, 2.0, 1.0);   // Point camera is looking from
-    let lookat = Point3::new(0.0, 0.0, -1.0); // Point camera is looking at
-    let vup = Vec3::new(0.0, 1.0, 0.0);     // Camera-relative "up" direction
+    let cam: Camera = Camera::new(aspect_ratio, image_width, sample_per_pixel, max_ray_depth);
 
-    let cam: Camera = Camera::new(aspect_ratio, image_width, sample_per_pixel, max_ray_depth, vfov, lookfrom, lookat, vup);
-    cam
-}
-
-fn build_world() -> HittableList {
-    
     let material_ground: Material = Rc::new(Lambertian::new(ColorType::new(0.8, 0.8, 0.0)));
     let material_center: Material = Rc::new(Lambertian::new(ColorType::new(0.1, 0.2, 0.5)));
     let material_left: Material = Rc::new(Dielectric::new(1.5)); // air to water
@@ -114,18 +109,6 @@ fn build_world() -> HittableList {
             )
         )
     );
-
-    world
-}
-
-// main part
-
-fn main() {
-
-    let parameters = init_prompt();
-
-    let cam = build_camera();
-    let world = build_world();
 
     let img = cam.render(&(world.to_object()));
 

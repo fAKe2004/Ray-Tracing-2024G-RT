@@ -17,6 +17,8 @@ pub mod interval;
 pub mod camera;
 pub mod material;
 
+// pub mod camera_multithreading;
+
 pub use utility::{*};
 pub use color::{*};
 pub use ray::{*};
