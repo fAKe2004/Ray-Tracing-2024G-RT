@@ -194,8 +194,8 @@ impl Camera {
     let bar = get_ProgressBar(self.image_height, self.image_width);
     let bar_wrapper = Arc::new(&bar);
 
-    const HEIGHT_PARTITION: usize = 3;
-    const WIDTH_PARTITION: usize = 3;
+    const HEIGHT_PARTITION: usize = 1;
+    const WIDTH_PARTITION: usize = 1;
 
     let camera = Arc::new(self.clone());
     let world = Arc::new(world);
