@@ -70,7 +70,21 @@ fn build_camera() -> Camera {
     let lookat = Point3::new(0.0, 0.0, -1.0); // Point camera is looking at
     let vup = Vec3::new(0.0, 1.0, 0.0);     // Camera-relative "up" direction
 
-    let cam: Camera = Camera::new(aspect_ratio, image_width, sample_per_pixel, max_ray_depth, vfov, lookfrom, lookat, vup);
+    let defocus_angle = 10.0;
+    let focus_dist = 3.4;
+
+    let cam: Camera = Camera::new(
+        aspect_ratio, 
+        image_width, 
+        sample_per_pixel, 
+        max_ray_depth, 
+        vfov, 
+        lookfrom, 
+        lookat, 
+        vup, 
+        defocus_angle, 
+        focus_dist
+    );
     cam
 }
 

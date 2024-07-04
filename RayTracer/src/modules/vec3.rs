@@ -55,6 +55,22 @@ impl Vec3 {
         if u.dot(&normal) > 0.0 {u} else {-u}
     }
     
+    pub fn rand_in_unit_disk() -> Self {
+        // let l = rand_range(0.0, 1.0);
+        // let theta = rand_range(0.0, 2.0 * PI);
+
+        // Vec3::new(theta.cos() * l, theta.sin() * l, 0.0)
+
+        // textbook approach
+        while true {
+            let p = Vec3::new(
+                rand_range(-1.0, 1.0), rand_range(-1.0, 1.0),0.0);
+            if p.norm_squared() < 1.0 {
+                return p;
+            }
+        }
+        Vec3::zero() // will never be reached
+    }
 
 
 

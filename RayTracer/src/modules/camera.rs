@@ -21,6 +21,8 @@ pub struct Camera {
   pub lookfrom: Point3,
   pub lookat: Point3,
   pub vup: Vec3,
+  pub defocus_angle: f64, // Variation angle of rays through each pixel
+  pub focus_dist: f64,  // Distance from camera lookfrom point to plane of perfect focus
 
   image_height: usize,
   pixel_samples_scale: f64, // Color scale factor for a sum of pixel samples
@@ -31,6 +33,8 @@ pub struct Camera {
   u: Vec3,
   v: Vec3,
   w: Vec3,
+  defocus_disk_u: Vec3, // Defocus disk horizontal radius
+  defocus_disk_v: Vec3, // Defocus disk vertical radius
 }
 
 impl Camera {
@@ -42,7 +46,10 @@ impl Camera {
     vfov: f64, 
     lookfrom: Point3, 
     lookat: Point3, 
-    vup: Vec3) -> Self {
+    vup: Vec3,
+    defocus_angle: f64,
+    focus_dist: f64
+  ) -> Self {
     let mut cam = Camera {
       aspect_ratio,
       image_width,
@@ -52,6 +59,8 @@ impl Camera {
       lookfrom,
       lookat,
       vup,
+      defocus_angle,
+      focus_dist,
       image_height: 0,
       pixel_samples_scale: 0.0,
       center: Point3::zero(),
@@ -61,6 +70,8 @@ impl Camera {
       u: Vec3::zero(),
       v: Vec3::zero(),
       w: Vec3::zero(),
+      defocus_disk_u: Vec3::zero(),
+      defocus_disk_v: Vec3::zero(),
     };
     cam.initialize();
     cam
@@ -99,10 +110,10 @@ impl Camera {
     
     self.center = self.lookfrom;
 
-    let focal_length = (self.lookfrom - self.lookat).norm();
+    // Determine viewport dimensions.
     let theta = degrees_to_radians(self.vfov);
     let h = (theta / 2.0 as f64).tan();
-    let viewport_height = 2.0 * h * focal_length;
+    let viewport_height = 2.0 * h * self.focus_dist;
     let viewport_width = viewport_height * (self.image_width as f64 / self.image_height as f64);
 
     // Calculate the u,v,w unit basis vectors for the camera coordinate frame.
@@ -118,20 +129,25 @@ impl Camera {
     // Calculate the horizontal and vertical delta vectors from pixel to pixel.
     self.pixel_delta_u = viewport_u / self.image_width as f64;
     self.pixel_delta_v = viewport_v / self.image_height as f64;
-
+    
     // Calculate the location of the upper left pixel.
     let viewport_upper_left = self.center
-      - (focal_length * self.w) - viewport_u / 2.0 - viewport_v / 2.0;
+      - (self.focus_dist * self.w) - viewport_u / 2.0 - viewport_v / 2.0;
     self.pixel00_loc = viewport_upper_left + (self.pixel_delta_u + self.pixel_delta_v) * 0.5;
     /*
       layout:
-      00 -> u(x)
+      00 -> u
       |
       V
-      v(-y)
-      looking into -z
+      v
+      looking into w
     */
 
+    // Calculate the camera defocus disk basis vectors.
+    let defocus_radius = self.focus_dist * degrees_to_radians(self.defocus_angle / 2.0).tan();
+
+    self.defocus_disk_u = self.u * defocus_radius;
+    self.defocus_disk_v = self.v * defocus_radius;
   }
 
   // Return a ray pointing from camera to pixel (i, j) where exact coordinates is randomly sampled.
@@ -140,17 +156,29 @@ impl Camera {
     let pixel_sample_coord = self.pixel00_loc + 
       (i as f64 + offset.x) * self.pixel_delta_u + 
       (j as f64 + offset.y) * self.pixel_delta_v;
-    Ray::new(self.center, pixel_sample_coord- self.center) 
+
+    let ray_origin = if self.defocus_angle <= 0.0 {
+        self.center 
+      } else {
+        self.defocus_disk_sample()
+      };
+    let ray_direction = pixel_sample_coord - ray_origin;
+    Ray::new(ray_origin, ray_direction) 
   }
  
+
   // Return a random ([-0.5, 0.5], [-0.5, 0.5], 0) Vec3
   fn sample_square() -> Vec3 {
     static deviation: f64 = 0.5;
     Vec3::new(rand_range(-deviation, deviation), rand_range(-deviation, deviation), 0.0)
   }
 
-  fn ray_color(&self, ray: &Ray, depth: usize, world: &Object) -> ColorType {
+  fn defocus_disk_sample(&self) -> Point3 {
+    let p = Vec3::rand_in_unit_disk();
+    self.center + p.x * self.defocus_disk_u + p.y * self.defocus_disk_v
+  }
 
+  fn ray_color(&self, ray: &Ray, depth: usize, world: &Object) -> ColorType {
     if depth >= self.max_ray_depth { // ray tracing depth exceeds limit // note that my depth is incremental, which is different from the textbook
       return ColorType::zero();
     }
