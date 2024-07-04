@@ -1,8 +1,10 @@
+
 use super::vec3::{*};
 use super::ray::{*};
 use super::interval::{*};
 use super::hittable::{*};
 use super::color::{*};
+use super::utility::{*};
 use std::rc::Rc;
 
 pub trait Scatter {
@@ -92,6 +94,11 @@ impl Dielectric {
       refraction_index,
     }
   }
+  pub fn reflectance(cosine: f64, refraction_index: f64) -> f64 {
+    let r0 = (1.0 - refraction_index) / (1.0 + refraction_index);
+    let r0 = r0*r0;
+    return r0 + (1.0 as f64 - r0) * (1.0 as f64 - cosine).powf(5.0);
+  }
 }
 
 impl Scatter for Dielectric {
@@ -106,7 +113,7 @@ impl Scatter for Dielectric {
     let cannot_refract = ratio * sin_theta > 1.0;
     
     let scattered_direction = 
-      if cannot_refract {
+      if cannot_refract || Self::reflectance(cos_theta, self.refraction_index) > rand_01() {
         Vec3::reflect(ray_in.dir.normalize(), rec.normal)
       } else {
         Vec3::refract(ray_in.dir.normalize(), rec.normal, ratio)
