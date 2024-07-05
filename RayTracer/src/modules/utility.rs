@@ -33,7 +33,7 @@ pub fn get_ProgressBar(height: usize, width: usize) -> ProgressBar {
   };
 
   bar.set_style(ProgressStyle::default_bar()
-  .template("{spinner:.green} Elapsed {elapsed_precise} [{wide_bar:.cyan/blue}] {pos}/{len} ({eta}) \"{msg}\"")
+  .template("{spinner:.green} Elapsed {elapsed_precise} [{wide_bar:.cyan/blue}] {pos}/{len} ({eta}) {msg}")
   .progress_chars("●▸▹⋅"));
 
   bar

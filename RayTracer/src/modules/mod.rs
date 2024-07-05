@@ -2,8 +2,7 @@
 pub const INFINITY: f64 = f64::INFINITY;
 pub const PI: f64 = std::f64::consts::PI;
 pub const EPS: f64 = 1e-4;
-pub const HEIGHT_PARTITION: usize = 4; // multithreading parameters
-pub const WIDTH_PARTITION: usize = 4;
+
 
 
 pub use std::sync::Arc;

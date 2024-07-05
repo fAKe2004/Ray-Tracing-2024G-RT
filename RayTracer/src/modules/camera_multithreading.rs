@@ -1,4 +1,7 @@
-use super::{WIDTH_PARTITION, HEIGHT_PARTITION};
+const HEIGHT_PARTITION: usize = 10; // multithreading parameters
+const WIDTH_PARTITION: usize = 10;
+const THREAD_LIMIT: usize = 16;
+
 use super::EPS;
 
 use super::vec3::{*};
@@ -10,7 +13,7 @@ use super::utility::{*};
 use super::interval::{*};
 use super::INFINITY;
 
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, Condvar};
 use crossbeam::thread;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use image::{ImageBuffer, RgbImage}; 
@@ -186,10 +189,8 @@ impl Camera {
 
 
 
-
-  pub fn render(&self, world: &Object) -> RgbImage { // multi-core
-
-
+  // Multithread mechanism -> Partition into fine granularity (with WIDTH_PARTITION * HEIGHT_PARTITION sub-tasks), and only let THREAD_LIMIT threads run at the same time.
+  pub fn render(&self, world: &Object) -> RgbImage { 
     let mut img: RgbImage = ImageBuffer::new(self.image_width as u32, self.image_height as u32);
 
     println!("[Render progress]:");
@@ -202,26 +203,38 @@ impl Camera {
     
     thread::scope(move |thd|{
       let thread_count = Arc::new(AtomicUsize::new(0));
+      let thread_number_controller = Arc::new(Condvar::new());
       
       let chunk_height = (self.image_height + HEIGHT_PARTITION - 1) / HEIGHT_PARTITION;
       let chunk_width = (self.image_width + WIDTH_PARTITION - 1) / WIDTH_PARTITION;
       for j in 0..HEIGHT_PARTITION {
         for i in 0..WIDTH_PARTITION {
+          let lock_for_condv = Mutex::new(false);
+          while !(thread_count.load(Ordering::SeqCst) < THREAD_LIMIT) { // outstanding thread number control
+            thread_number_controller.wait(lock_for_condv.lock().unwrap()).unwrap();
+          }
+
+          
+          let bar = Arc::clone(&bar_wrapper);
+
           let camera = Arc::clone(&camera);
           let world = Arc::clone(&world);
           let img_mtx = Arc::clone(&img_mtx);
-          let bar = Arc::clone(&bar_wrapper);
-          let thread_count = Arc::new(thread_count.clone());
+          
+          let thread_count = Arc::clone(&thread_count);
+          let thread_number_controller = Arc::clone(&thread_number_controller);
+
+          thread_count.fetch_add(1, Ordering::SeqCst);
+          bar.set_message(format!("|{} threads outstanding|", thread_count.load(Ordering::SeqCst))); // move out of thread, so that its sequential with thread number control code
 
           let _ = thd.spawn(move |_| {
-            thread_count.fetch_add(1, Ordering::SeqCst);
-            bar.set_message(format!("{} threads outstanding", thread_count.load(Ordering::SeqCst)));
             camera.render_sub(&world, &img_mtx, &bar, 
               i * chunk_width, (i + 1) * chunk_width, 
               j * chunk_height, (j + 1) * chunk_height);
             // println!("subtask ({}, {}) done", i, j);
             thread_count.fetch_sub(1, Ordering::SeqCst);
-            bar.set_message(format!("{} threads outstanding", thread_count.load(Ordering::SeqCst)));
+            bar.set_message(format!("|{} threads outstanding|", thread_count.load(Ordering::SeqCst)));
+            thread_number_controller.notify_one();
           });
 
         }
