@@ -6,6 +6,8 @@ use super::hittable::{*};
 use super::interval::{*};
 use super::material::{*};
 
+use std::sync::Arc;
+
 pub struct Sphere {
   pub center: Point3,
   pub radius: f64,
@@ -53,6 +55,8 @@ impl Hittable for Sphere {
 
     true
   }
-  
+  fn to_object(self) -> Object {
+    Arc::new(self)
+  }
 }
 

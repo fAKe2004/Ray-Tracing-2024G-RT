@@ -1,5 +1,4 @@
-// Not Finished
-
+use super::{WIDTH_PARTITION, HEIGHT_PARTITION};
 use super::EPS;
 
 use super::vec3::{*};
@@ -13,6 +12,7 @@ use super::INFINITY;
 
 use std::sync::{Arc, Mutex};
 use crossbeam::thread;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use image::{ImageBuffer, RgbImage}; 
 use indicatif::{ProgressBar, ProgressStyle};
 
@@ -188,20 +188,20 @@ impl Camera {
 
 
   pub fn render(&self, world: &Object) -> RgbImage { // multi-core
+
+
     let mut img: RgbImage = ImageBuffer::new(self.image_width as u32, self.image_height as u32);
 
     println!("[Render progress]:");
     let bar = get_ProgressBar(self.image_height, self.image_width);
     let bar_wrapper = Arc::new(&bar);
 
-    const HEIGHT_PARTITION: usize = 1;
-    const WIDTH_PARTITION: usize = 1;
-
     let camera = Arc::new(self.clone());
     let world = Arc::new(world);
     let img_mtx = Arc::new(Mutex::new(&mut img));
-
+    
     thread::scope(move |thd|{
+      let thread_count = Arc::new(AtomicUsize::new(0));
       
       let chunk_height = (self.image_height + HEIGHT_PARTITION - 1) / HEIGHT_PARTITION;
       let chunk_width = (self.image_width + WIDTH_PARTITION - 1) / WIDTH_PARTITION;
@@ -211,13 +211,17 @@ impl Camera {
           let world = Arc::clone(&world);
           let img_mtx = Arc::clone(&img_mtx);
           let bar = Arc::clone(&bar_wrapper);
+          let thread_count = Arc::new(thread_count.clone());
 
           let _ = thd.spawn(move |_| {
-            println!("subtask ({}, {}) activated", i, j);
+            thread_count.fetch_add(1, Ordering::SeqCst);
+            bar.set_message(format!("{} threads outstanding", thread_count.load(Ordering::SeqCst)));
             camera.render_sub(&world, &img_mtx, &bar, 
               i * chunk_width, (i + 1) * chunk_width, 
               j * chunk_height, (j + 1) * chunk_height);
             // println!("subtask ({}, {}) done", i, j);
+            thread_count.fetch_sub(1, Ordering::SeqCst);
+            bar.set_message(format!("{} threads outstanding", thread_count.load(Ordering::SeqCst)));
           });
 
         }

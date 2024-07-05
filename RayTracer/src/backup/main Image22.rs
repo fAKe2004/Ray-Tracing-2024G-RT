@@ -60,19 +60,18 @@ fn tail_process(img: RgbImage, parameters: (String, String, String, u8), author:
 
 fn build_camera() -> Camera {
     let aspect_ratio = 16.0 / 9.0;
-    let image_width = 1200 as usize;
-    let sample_per_pixel = 500 as usize;
-    // let sample_per_pixel = 100 as usize;
+    let image_width = 800 as usize;
+    let sample_per_pixel = 100 as usize;
     // let sample_per_pixel = 10 as usize;
     let max_ray_depth = 50 as usize;
     let vfov = 20.0;
     
-    let lookfrom = Point3::new(13.0, 2.0, 3.0);   // Point camera is looking from
-    let lookat = Point3::new(0.0, 0.0, 0.0); // Point camera is looking at
+    let lookfrom = Point3::new(-2.0, 2.0, 1.0);   // Point camera is looking from
+    let lookat = Point3::new(0.0, 0.0, -1.0); // Point camera is looking at
     let vup = Vec3::new(0.0, 1.0, 0.0);     // Camera-relative "up" direction
 
-    let defocus_angle = 0.6;
-    let focus_dist = 10.0;
+    let defocus_angle = 10.0;
+    let focus_dist = 3.4;
 
     let cam: Camera = Camera::new(
         aspect_ratio, 
@@ -91,60 +90,43 @@ fn build_camera() -> Camera {
 
 fn build_world() -> HittableList {
     
+    let material_ground: Material = Arc::new(Lambertian::new(ColorType::new(0.8, 0.8, 0.0)));
+    let material_center: Material = Arc::new(Lambertian::new(ColorType::new(0.1, 0.2, 0.5)));
+    let material_left: Material = Arc::new(Dielectric::new(1.5)); // air to water
+    let material_bubble: Material = Arc::new(Dielectric::new(1.00 / 1.50));
+    let material_right: Material = Arc::new(Metal::new(ColorType::new(0.8, 0.6, 0.2), 1.0));
+
+
     let mut world = HittableList::default();
-
-    let material_ground: Material = Lambertian::new(ColorType::new(0.8, 0.8, 0.0)).to_material();
-    
-    world.add(Sphere::new(
-            Point3::new(0.0, -1000.0, 0.0),
-            1000.0,
-            material_ground
-        ).to_object()
+    world.add(Arc::new(
+        Sphere::new(    
+            Point3::new(0.0, -100.5, -1.0), 100.0, material_ground
+        )
+    )
     );
-    
-    for a in -11..11 {
-        for b in -11..11 {
-            let choose_mat = rand_01();
-            let center = Point3::new(a as f64 + 0.9 * rand_01(), 0.2, b as f64 + 0.9 * rand_01());
-
-
-            if (center - Point3::new(4.0, 0.2, 0.0)).norm() > 0.9 {
-                let mut sphere_material : Material = DefaultMaterial::new().to_material();
-
-                if choose_mat < 0.8 {
-                    let albedo = ColorType::rand_01().elemul(&ColorType::rand_01());
-
-                    sphere_material = Lambertian::new(albedo).to_material();
-                } else if choose_mat < 0.95 {
-                    let albedo = ColorType::rand_range(0.5, 1.0);
-                    let fuzz = rand_range(0.0, 0.5);
-                    sphere_material = Metal::new(albedo, fuzz).to_material();
-                } else {
-                    sphere_material = Dielectric::new(1.5).to_material();
-                }
-
-                world.add(
-                    Sphere::new(center, 0.2, sphere_material).to_object()
-                )
-            }
-        }
-    }
-
-
-    let material_1: Material = Dielectric::new(1.5).to_material();
-    world.add(
-        Sphere::new(Point3::new(0.0, 1.0, 0.0), 1.0, material_1).to_object()
+    world.add(Arc::new(
+            Sphere::new(
+                Point3::new(0.0, 0.0, -1.2), 0.5, material_center
+            )
+        )
+    );
+    world.add(Arc::new(
+            Sphere::new(
+                Point3::new(-1.0, 0.0, -1.0), 0.5, material_left
+            )
+        )
+    );
+    world.add(Arc::new(
+            Sphere::new(
+                Point3::new(-1.0, 0.0, -1.0),   0.4, material_bubble)
+        )
     );
 
-
-    let material_2: Material = Lambertian::new(ColorType::new(0.4, 0.2, 0.1)).to_material();
-    world.add(
-        Sphere::new(Point3::new(-4.0, 1.0, 0.0), 1.0, material_2).to_object()
-    );
-
-    let material_3: Material = Metal::new(ColorType::new(0.7, 0.6, 0.5), 0.0).to_material();
-    world.add(
-        Sphere::new(Point3::new(4.0, 1.0, 0.0), 1.0, material_3).to_object()
+    world.add(Arc::new(
+            Sphere::new(
+                Point3::new(1.0, 0.0, -1.0), 0.5, material_right
+            )
+        )
     );
 
     world

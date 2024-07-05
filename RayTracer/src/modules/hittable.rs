@@ -17,8 +17,9 @@ pub struct HitRecord {
 
 
 // Hittable Trait
-pub trait Hittable {
+pub trait Hittable: Send + Sync{
   fn hit(&self, ray: &Ray, ray_t: Interval, rec: &mut HitRecord) -> bool;
+  fn to_object(self) -> Object;
 }
 
 // use Arc::new, instead of Object::new btw
@@ -96,10 +97,9 @@ impl HittableList {
   }
 
   // convert into Object(aka. Arc<dyn Hittable>)
-  pub fn to_object(self) -> Object {
-    let rc: Object = Arc::new(self);
-    rc
-  }
+  // pub fn to_object(&self) -> Object {
+  //   Arc::new(*self)
+  // }
 }
 
 impl Hittable for HittableList {
@@ -117,5 +117,8 @@ impl Hittable for HittableList {
     }
 
     hit_anything
+  }
+  fn to_object(self) -> Object {
+      Arc::new(self)
   }
 }

@@ -9,6 +9,8 @@ use std::sync::Arc;
 
 pub trait Scatter {
   fn scatter(&self, ray_in: &Ray, rec: &HitRecord, attunation: &mut ColorType, scattered: &mut Ray) -> bool;
+  fn to_material(self) ->
+ Material;
 }
 
 pub type Material = Arc<dyn Scatter + Sync + Send>;
@@ -25,6 +27,10 @@ impl DefaultMaterial {
 impl Scatter for DefaultMaterial {
   fn scatter(&self, ray_in: &Ray, rec: &HitRecord, attunation: &mut ColorType, scattered: &mut Ray) -> bool {
     false
+  }
+  fn to_material(self) ->
+   Material {
+      Arc::new(self)
   }
 }
 
@@ -53,6 +59,10 @@ impl Scatter for Lambertian {
     *attunation = self.albedo;
     true
   }
+  fn to_material(self) ->
+  Material {
+     Arc::new(self)
+  }
 }
 
 
@@ -78,6 +88,10 @@ impl Scatter for Metal {
     *scattered = Ray::new(rec.p, reflected);
     *attunation = self.albedo;
     Vec3::dot(&scattered.dir, &rec.normal) > 0.0
+  }
+  fn to_material(self) ->
+  Material {
+     Arc::new(self)
   }
 }
 
@@ -121,5 +135,9 @@ impl Scatter for Dielectric {
 
     *scattered = Ray::new(rec.p, scattered_direction);
     true
+  }
+  fn to_material(self) ->
+  Material {
+     Arc::new(self)
   }
 }
