@@ -10,3 +10,6 @@ image = "0.24.2"
 indicatif = "0.16.2" # progress bar
 rand = "0.8"
 crossbeam = "0.7"
+
+[release]
+opt = 3

@@ -55,7 +55,7 @@ impl Scatter for Lambertian {
       scatter_dircton = rec.normal
     }
 
-    *scattered = Ray::new(rec.p, scatter_dircton);
+    *scattered = Ray::new(rec.p, scatter_dircton, ray_in.tm);
     *attunation = self.albedo;
     true
   }
@@ -85,7 +85,7 @@ impl Scatter for Metal {
   fn scatter(&self, ray_in: &Ray, rec: &HitRecord, attunation: &mut ColorType, scattered: &mut Ray) -> bool {
     let mut reflected = Vec3::reflect(ray_in.dir, rec.normal);
     reflected = reflected.normalize() + (self.fuzz * Vec3::rand_unit());
-    *scattered = Ray::new(rec.p, reflected);
+    *scattered = Ray::new(rec.p, reflected, ray_in.tm);
     *attunation = self.albedo;
     Vec3::dot(&scattered.dir, &rec.normal) > 0.0
   }
@@ -133,7 +133,7 @@ impl Scatter for Dielectric {
         Vec3::refract(ray_in.dir.normalize(), rec.normal, ratio)
       };
 
-    *scattered = Ray::new(rec.p, scattered_direction);
+    *scattered = Ray::new(rec.p, scattered_direction, ray_in.tm);
     true
   }
   fn to_material(self) ->

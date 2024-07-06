@@ -60,9 +60,9 @@ fn tail_process(img: RgbImage, parameters: (String, String, String, u8), author:
 
 fn build_camera() -> Camera {
     let aspect_ratio = 16.0 / 9.0;
-    let image_width = 1200 as usize;
-    let sample_per_pixel = 500 as usize;
-    // let sample_per_pixel = 100 as usize;
+    let image_width = 400 as usize;
+    // let sample_per_pixel = 500 as usize;
+    let sample_per_pixel = 100 as usize;
     // let sample_per_pixel = 10 as usize;
     let max_ray_depth = 50 as usize;
     let vfov = 20.0;
@@ -93,9 +93,9 @@ fn build_world() -> HittableList {
     
     let mut world = HittableList::default();
 
-    let material_ground: Material = Lambertian::new(ColorType::new(0.8, 0.8, 0.0)).to_material();
+    let material_ground: Material = Lambertian::new(ColorType::new(0.5, 0.5, 0.5)).to_material();
     
-    world.add(Sphere::new(
+    world.add(Sphere::new_static(
             Point3::new(0.0, -1000.0, 0.0),
             1000.0,
             material_ground
@@ -113,19 +113,26 @@ fn build_world() -> HittableList {
 
                 if choose_mat < 0.8 {
                     let albedo = ColorType::rand_01().elemul(&ColorType::rand_01());
+                    let center_after_move = center + Vec3::new(0.0, rand_range(0.0, 0.5), 0.0);
 
                     sphere_material = Lambertian::new(albedo).to_material();
+
+                    world.add(
+                        Sphere::new_moving(center, center_after_move, 0.2, sphere_material).to_object()
+                    );
                 } else if choose_mat < 0.95 {
                     let albedo = ColorType::rand_range(0.5, 1.0);
                     let fuzz = rand_range(0.0, 0.5);
                     sphere_material = Metal::new(albedo, fuzz).to_material();
+                    world.add(
+                        Sphere::new_static(center, 0.2, sphere_material).to_object()
+                    );
                 } else {
                     sphere_material = Dielectric::new(1.5).to_material();
+                    world.add(
+                        Sphere::new_static(center, 0.2, sphere_material).to_object()
+                    );
                 }
-
-                world.add(
-                    Sphere::new(center, 0.2, sphere_material).to_object()
-                )
             }
         }
     }
@@ -133,18 +140,18 @@ fn build_world() -> HittableList {
 
     let material_1: Material = Dielectric::new(1.5).to_material();
     world.add(
-        Sphere::new(Point3::new(0.0, 1.0, 0.0), 1.0, material_1).to_object()
+        Sphere::new_static(Point3::new(0.0, 1.0, 0.0), 1.0, material_1).to_object()
     );
 
 
     let material_2: Material = Lambertian::new(ColorType::new(0.4, 0.2, 0.1)).to_material();
     world.add(
-        Sphere::new(Point3::new(-4.0, 1.0, 0.0), 1.0, material_2).to_object()
+        Sphere::new_static(Point3::new(-4.0, 1.0, 0.0), 1.0, material_2).to_object()
     );
 
     let material_3: Material = Metal::new(ColorType::new(0.7, 0.6, 0.5), 0.0).to_material();
     world.add(
-        Sphere::new(Point3::new(4.0, 1.0, 0.0), 1.0, material_3).to_object()
+        Sphere::new_static(Point3::new(4.0, 1.0, 0.0), 1.0, material_3).to_object()
     );
 
     world

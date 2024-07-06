@@ -1,6 +1,6 @@
 const HEIGHT_PARTITION: usize = 10; // multithreading parameters
 const WIDTH_PARTITION: usize = 10;
-const THREAD_LIMIT: usize = 16;
+const THREAD_LIMIT: usize = 20;
 
 use super::EPS;
 
@@ -146,7 +146,8 @@ impl Camera {
         self.defocus_disk_sample()
       };
     let ray_direction = pixel_sample_coord - ray_origin;
-    Ray::new(ray_origin, ray_direction) 
+    let ray_time = rand_01();
+    Ray::new(ray_origin, ray_direction, ray_time)
   }
  
 
