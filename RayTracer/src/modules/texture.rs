@@ -98,7 +98,6 @@ impl ImageTexture {
     }
 
     pub fn get_color_bilinear(&self, mut u: f64, mut v: f64) -> ColorType {
-        // println!("Hey, what's my coord ({}, {})", u, v);
         if u < 0.0 { u = 0.0; }
         if u > 1.0 { u = 1.0; }
         if v < 0.0 { v = 0.0; }
@@ -120,16 +119,15 @@ impl ImageTexture {
         let color1: Vector3<f64> = (v2 as f64 - v_img) * color11 + (v_img - v1 as f64) * color21;
         let color2: Vector3<f64> = (v2 as f64 - v_img) * color12 + (v_img - v1 as f64) * color22;
         let color : Vector3<f64> = (u2 as f64 - u_img) * color1 + (u_img - u1 as f64) * color2;
-        // let color: Vector3<f64> = color11;
 
         let color_scale = 1.0 / 255.0;
-        let color = ColorType::new(
+        let gamma_color = ColorType::new(
           color_scale * color[2] as f64, 
           color_scale * color[1] as f64, 
           color_scale * color[0] as f64);
 
-        // println!("{} {} {}", color.x, color.y, color.z);
-        color
+        // correction from image gamma space to linear space
+        gamma_to_linear_ColorType(gamma_color)
     }
 }
 

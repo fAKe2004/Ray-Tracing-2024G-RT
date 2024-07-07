@@ -26,6 +26,24 @@ pub fn linear_to_gamma_ColorType(pixel_color: ColorType) -> ColorType {
     )
 }
 
+// !!! 保证 texture 的材质不失真，要先把 gamma 转回 linear
+// 效果见 Image5
+pub fn gamma_to_linear(gamma_component: f64) -> f64{
+    if gamma_component > 0.0 {
+        gamma_component.powf(GAMMA_COEFFICIENT)
+    } else {
+        0.0
+    }
+}
+
+pub fn gamma_to_linear_ColorType(pixel_color: ColorType) -> ColorType {
+    ColorType::new(
+        gamma_to_linear(pixel_color.x),
+        gamma_to_linear(pixel_color.y),
+        gamma_to_linear(pixel_color.z),
+    )
+}
+
 
 /// the multi-sample write_color() function 
 /// no gamma correction applied
