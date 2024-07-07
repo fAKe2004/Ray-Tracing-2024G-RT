@@ -1,4 +1,4 @@
-use crate::EPS;
+use crate::{EPS, GAMMA_COEFFICIENT};
 
 use crate::vec3::{*};
 use crate::ray::{*};
@@ -12,7 +12,7 @@ pub type ColorType = Vec3;
 
 pub fn linear_to_gamma(linear_component: f64) -> f64 {
     if linear_component > 0.0 {
-        linear_component.sqrt()
+        linear_component.powf(1.0 / GAMMA_COEFFICIENT)
     } else {
         0.0
     }

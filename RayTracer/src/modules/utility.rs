@@ -5,6 +5,8 @@ use std::fs::File;
 use std::env;
 use std::io;
 use rand::Rng;
+use nalgebra::Vector3;
+use opencv::core::VecN;
 
 pub fn degrees_to_radians(degrees: f64) -> f64 {
   degrees * PI / 180.0
@@ -72,4 +74,9 @@ pub fn get_output_confirmation(file_name: &mut String, default_file_name: &Strin
           false
       }
   }
+}
+
+
+pub fn convert_U8VecN_to_Vector3f64(vec : &VecN<u8, 3>) -> Vector3<f64> {
+    Vector3::new(vec[0] as f64, vec[1] as f64, vec[2] as f64)
 }

@@ -121,6 +121,36 @@ fn build_camera_2() -> Camera {
     );
     cam
 }
+
+fn build_camera_3() -> Camera {
+    let aspect_ratio = 16.0 / 9.0;
+    let image_width = 400 as usize;
+    let sample_per_pixel = 100 as usize;
+    let max_ray_depth = 50 as usize;
+    let vfov = 20.0;
+    
+    let lookfrom = Point3::new(0.0, 0.0, 12.0);   // Point camera is looking from
+    let lookat = Point3::new(0.0, 0.0, 0.0); // Point camera is looking at
+    let vup = Vec3::new(0.0, 1.0, 0.0);     // Camera-relative "up" direction
+
+    let defocus_angle = 0.0;
+    let focus_dist = 10.0;
+
+    let cam: Camera = Camera::new(
+        aspect_ratio, 
+        image_width, 
+        sample_per_pixel, 
+        max_ray_depth, 
+        vfov, 
+        lookfrom, 
+        lookat, 
+        vup, 
+        defocus_angle, 
+        focus_dist
+    );
+    cam
+}
+
 fn build_world_1() -> HittableList {
     
     let mut world = HittableList::default();
@@ -213,14 +243,23 @@ fn build_world_2() -> HittableList {
     world.to_bvh()
 }
 
+fn build_world_3() -> HittableList {
+    let mut world = HittableList::default();
+    let erath_texture = ImageTexture::new("input/earthmap.jpg").to_texture();
+    let erath_surface = Lambertian::new(erath_texture).to_material();
+    let global = Sphere::new_static(Point3::zero(), 2.0, erath_surface);
+    world.add(global.to_object());
+
+    world.to_bvh()
+}
 // main part
 
 fn main() {
 
     let parameters = init_prompt();
 
-    let cam = build_camera_1();
-    let world = build_world_1();
+    let cam = build_camera_3();
+    let world = build_world_3();
 
     let img = cam.render(&(world.to_object()));
 

@@ -1,4 +1,4 @@
-use crate::Material;
+use crate::{Material, PI};
 
 use crate::vec3::{*};
 use crate::ray::{*};
@@ -52,6 +52,16 @@ impl Sphere {
       self.center
     }
   }
+
+  pub fn get_spherer_uv(p: Point3 /* on unit sphere */) -> (f64, f64) {
+    let theta = (-p.y).acos();
+    let phi = (-p.z).atan2(p.x) + PI;
+
+    let u = phi / (2.0 * PI);
+    let v = theta / PI;
+
+    (u, v)
+  }
 }
 
 impl Hittable for Sphere {
@@ -82,7 +92,9 @@ impl Hittable for Sphere {
       return false;
     }
     
-    *rec = HitRecord::new_from_ray_and_outward_normal(ray, ray.at(root) - self.center, self.mat.clone(), root, 0.0, 0.0);
+    let outward_normal = (ray.at(root) - center).normalize();
+    let (u, v) = Self::get_spherer_uv(outward_normal);
+    *rec = HitRecord::new_from_ray_and_outward_normal(ray, outward_normal, self.mat.clone(), root, u, v);
 
     true
   }
