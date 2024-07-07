@@ -8,10 +8,12 @@ pub struct Interval {
 impl Interval {
   pub fn default() -> Self {
     Interval {
-      min: -INFINITY,
-      max: INFINITY,
+      min: INFINITY,
+      max: -INFINITY,
     }
   }
+
+  // construct [min, max] without adjusting order.
   pub fn new(min: f64, max: f64) -> Self {
     Interval {
       min,
@@ -19,8 +21,28 @@ impl Interval {
     }
   }
 
+  // automatically adjust order to min < max 
+  pub fn new_adaptive(min: f64, max: f64) -> Self {
+    Interval {
+      min: min.min(max),
+      max: max.max(min),
+    }
+  }
+
+  pub fn new_overlap(i1: Interval, i2: Interval) -> Self {
+    i1.overlap(i2)
+  }
+
+  pub fn new_union(i1: Interval, i2: Interval) -> Self {
+    i1.union(i2)
+  }
+
   pub fn size(&self) -> f64 {
     self.max - self.min
+  }
+
+  pub fn empty(&self) -> bool {
+    self.size() <= 0.0
   }
 
   // in [min, max] (closed)
@@ -41,6 +63,19 @@ impl Interval {
     } else {
       x
     }
+  }
+
+  pub fn expand(&self, delta: f64) -> Self {
+    let padding = delta / 2.0;
+    Interval::new(self.min - padding, self.max + padding)
+  }
+
+  pub fn overlap(&self, other: Interval) -> Self {
+    Interval::new(self.min.max(other.min), self.max.min(other.max))
+  }
+
+  pub fn union(&self, other: Interval) -> Self {
+    Interval::new(self.min.min(other.min), self.max.max(other.max))
   }
 }
 

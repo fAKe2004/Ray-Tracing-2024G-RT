@@ -21,6 +21,10 @@ pub fn rand_range(min: f64, max: f64) -> f64{
     rng.gen_range(min..max)
 }
 
+pub fn rand_range_int(min: i32, max: i32) -> i32 {
+    rand_range(min.into(), max as f64 + 1.0).floor() as i32
+}
+
 pub fn is_ci() -> bool {
   option_env!("CI").unwrap_or_default() == "true"
 }

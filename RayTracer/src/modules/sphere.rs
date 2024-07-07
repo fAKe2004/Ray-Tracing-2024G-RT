@@ -1,10 +1,11 @@
 use crate::Material;
 
-use super::vec3::{*};
-use super::ray::{*};
-use super::hittable::{*};
-use super::interval::{*};
-use super::material::{*};
+use crate::vec3::{*};
+use crate::ray::{*};
+use crate::hittable::{*};
+use crate::interval::{*};
+use crate::material::{*};
+use crate::aabb::{*};
 
 use std::sync::Arc;
 
@@ -12,18 +13,28 @@ pub struct Sphere {
   pub center: Point3,
   pub radius: f64,
   pub mat: Material,
-  pub is_moving: bool,
-  pub center_vec: Vec3,
+  is_moving: bool,
+  center_vec: Vec3,
+  bbox: Aabb,
 }
 
 impl Sphere {
   pub fn new(center: Point3, radius: f64, mat: Material, center_vec: Vec3) -> Self {
+    let rvec = Vec3::new(radius, radius, radius);
+    let is_moving = !center_vec.near_zero();
+    let mut bbox = Aabb::new_by_point(center - rvec, center + rvec);
+    if is_moving {
+      let center_after_move = center + center_vec;
+      bbox = Aabb::new_by_aabb(bbox, 
+        Aabb::new_by_point(center_after_move - rvec, center_after_move + rvec));
+    }
     Sphere {
       center,
       radius,
       mat,
-      is_moving: !center_vec.near_zero(),
-      center_vec: center_vec,
+      is_moving,
+      center_vec,
+      bbox,
     }
   }
 
@@ -71,12 +82,15 @@ impl Hittable for Sphere {
       return false;
     }
     
-    *rec = HitRecord::new_from_ray_and_outward_normal(ray, ray.at(root) - self.center, self.mat.clone(), root);
+    *rec = HitRecord::new_from_ray_and_outward_normal(ray, ray.at(root) - self.center, self.mat.clone(), root, 0.0, 0.0);
 
     true
   }
   fn to_object(self) -> Object {
     Arc::new(self)
+  }
+  fn bounding_box(&self) -> Aabb {
+    self.bbox
   }
 }
 

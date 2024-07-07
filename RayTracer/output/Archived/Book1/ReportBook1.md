@@ -55,15 +55,15 @@ pub type Object = Arc<dyn Hittable + Send + Sync>; // Shared Ptr
 
 
 关于 Material 的实现
-- **类似的采用 Scatter trait 和 Material = Arc\<dyn Scatter + Sync + Send\> 实现。**
+- **类似的采用 MaterialTrait trait 和 Material = Arc\<dyn MaterialTrait + Sync + Send\> 实现。**
 
 ```rust
-pub trait Scatter {
+pub trait MaterialTrait {
   fn scatter(&self, ray_in: &Ray, rec: &HitRecord, attunation: &mut ColorType, scattered: &mut Ray) -> bool;
   fn to_material(self) -> Material;
 }
 
-pub type Material = Arc<dyn Scatter + Sync + Send>;
+pub type Material = Arc<dyn MaterialTrait + Sync + Send>;
 ```
 
 ### Chapter 11

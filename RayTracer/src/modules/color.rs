@@ -1,9 +1,9 @@
-use super::EPS;
+use crate::EPS;
 
-use super::vec3::{*};
-use super::ray::{*};
-use super::hittable::{*};
-use super::interval::{*};
+use crate::vec3::{*};
+use crate::ray::{*};
+use crate::hittable::{*};
+use crate::interval::{*};
 
 use image::{RgbImage};
 

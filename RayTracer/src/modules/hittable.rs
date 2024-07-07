@@ -1,9 +1,11 @@
 
 // hittable and hittable list
-use super::vec3::{*};
-use super::ray::{*};
-use super::interval::{*};
-use super::material::{*};
+use crate::vec3::{*};
+use crate::ray::{*};
+use crate::interval::{*};
+use crate::material::{*};
+use crate::aabb::{*};
+use crate::bvh::{*};
 use std::sync::Arc;
 
 
@@ -12,6 +14,8 @@ pub struct HitRecord {
   pub normal: Vec3, // expected to be unit vector
   pub mat: Material,
   pub t: f64,
+  pub u: f64, // texture coord
+  pub v: f64,
   pub front_surface: bool
 }
 
@@ -19,7 +23,11 @@ pub struct HitRecord {
 // Hittable Trait
 pub trait Hittable: Send + Sync{
   fn hit(&self, ray: &Ray, ray_t: Interval, rec: &mut HitRecord) -> bool;
+  
   fn to_object(self) -> Object;
+
+  fn bounding_box(&self) -> Aabb;
+
 }
 
 // use Arc::new, instead of Object::new btw
@@ -29,17 +37,19 @@ pub type Object = Arc<dyn Hittable + Send + Sync>; // Shared Ptr
 
 
 impl HitRecord {
-  pub fn new(p: Point3, normal: Vec3, mat: Material, t: f64, front_surface: bool) -> Self {
+  pub fn new(p: Point3, normal: Vec3, mat: Material, t: f64, front_surface: bool, u: f64, v: f64) -> Self {
     HitRecord {
       p,
       normal: if normal.near_zero() { normal } else { normal.normalize() },
       mat,
       t,
+      u,
+      v,
       front_surface,
     }
   }
 
-  pub fn new_from_ray_and_outward_normal(ray: &Ray, outward_normal: Vec3, mat: Material, t: f64) -> Self{
+  pub fn new_from_ray_and_outward_normal(ray: &Ray, outward_normal: Vec3, mat: Material, t: f64, u: f64, v: f64) -> Self{
     let front_surface = ray.dir.dot(&outward_normal) < 0.0;
     let outward_normal = outward_normal.normalize();
     
@@ -48,23 +58,22 @@ impl HitRecord {
       normal: if front_surface {outward_normal} else {-outward_normal},
       mat,
       t,
+      u,
+      v,
       front_surface,
     }
   }
 
   pub fn default() -> Self {
-    Self::new(Point3::zero(), Vec3::zero(), Arc::new(DefaultMaterial::new()) , 0.0, false)
+    Self::new(Point3::zero(), Vec3::zero(), Arc::new(DefaultMaterial::new()) , 0.0, false, 0.0, 0.0)
   }
 }
 
 impl Clone for HitRecord {
   fn clone(&self) -> Self {
     HitRecord {
-      p: self.p,
-      normal: self.normal,
       mat: self.mat.clone(),
-      t: self.t,
-      front_surface: self.front_surface,
+      ..*self
     }
   }
 }
@@ -72,20 +81,29 @@ impl Clone for HitRecord {
 // }
 
 
+
+// HittableList
 pub struct HittableList {
-  pub objects: Vec<Object>
+  pub objects: Vec<Object>,
+  bbox: Aabb,
 }
 
 impl HittableList {
   pub fn new(objects :Vec<Object>) -> Self {
+    let mut bbox = Aabb::default();
+    for iter in &objects {
+      bbox = Aabb::new_by_aabb(bbox, iter.bounding_box());
+    }
     HittableList {
       objects,
+      bbox,
     }
   }
 
   pub fn default() -> Self {
     HittableList {
       objects: Vec::default(),
+      bbox: Aabb::default(),
     }    
   }
   pub fn clear(&mut self) {
@@ -93,13 +111,15 @@ impl HittableList {
   }
 
   pub fn add(&mut self, object : Object) {
+    self.bbox = Aabb::new_by_aabb(self.bbox, object.bounding_box());
     self.objects.push(object);
   }
 
-  // convert into Object(aka. Arc<dyn Hittable>)
-  // pub fn to_object(&self) -> Object {
-  //   Arc::new(*self)
-  // }
+  pub fn to_bvh(&mut self) -> Self{
+    let mut temp = HittableList::default();
+    temp.add(BvhNode::new(self).to_object());
+    temp
+  }
 }
 
 impl Hittable for HittableList {
@@ -120,5 +140,8 @@ impl Hittable for HittableList {
   }
   fn to_object(self) -> Object {
       Arc::new(self)
+  }
+  fn bounding_box(&self) -> Aabb {
+      self.bbox
   }
 }

@@ -1,13 +1,13 @@
 
-use super::EPS;
+use crate::EPS;
 
-use super::vec3::{*};
-use super::ray::{*};
-use super::hittable::{*};
-use super::color::{*};
-use super::utility::{*};
-use super::interval::{*};
-use super::INFINITY;
+use crate::vec3::{*};
+use crate::ray::{*};
+use crate::hittable::{*};
+use crate::color::{*};
+use crate::utility::{*};
+use crate::interval::{*};
+use crate::INFINITY;
 
 use std::sync::Arc;
 use image::{ImageBuffer, RgbImage}; 

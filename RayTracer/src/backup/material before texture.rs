@@ -1,14 +1,10 @@
 
-use indicatif::ProgressIterator;
-
 use crate::vec3::{*};
 use crate::ray::{*};
 use crate::interval::{*};
 use crate::hittable::{*};
 use crate::color::{*};
 use crate::utility::{*};
-use crate::texture::{*};
-
 use std::sync::Arc;
 
 pub trait MaterialTrait {
@@ -18,9 +14,6 @@ pub trait MaterialTrait {
 }
 
 pub type Material = Arc<dyn MaterialTrait + Sync + Send>;
-
-
-
 
 pub struct DefaultMaterial {
 }
@@ -43,19 +36,13 @@ impl MaterialTrait for DefaultMaterial {
 
 // Lambertian
 pub struct Lambertian{
-  tex: Texture,
+  albedo: ColorType,
 }
 
 impl Lambertian {
-  pub fn new(tex: Texture) -> Self {
+  pub fn new(albedo: ColorType) -> Self {
     Lambertian {
-      tex,
-    }
-  }
-
-  pub fn new_by_color(albedo: ColorType) -> Self {
-    Lambertian {
-      tex: SolidColor::new(albedo).to_texture(),
+      albedo,
     }
   }
 }
@@ -69,7 +56,7 @@ impl MaterialTrait for Lambertian {
     }
 
     *scattered = Ray::new(rec.p, scatter_dircton, ray_in.tm);
-    *attunation = self.tex.value(rec.u, rec.v, rec.p);
+    *attunation = self.albedo;
     true
   }
   fn to_material(self) ->

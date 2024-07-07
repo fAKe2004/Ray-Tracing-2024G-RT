@@ -2,16 +2,16 @@ const HEIGHT_PARTITION: usize = 10; // multithreading parameters
 const WIDTH_PARTITION: usize = 10;
 const THREAD_LIMIT: usize = 20;
 
-use super::EPS;
+use crate::EPS;
 
-use super::vec3::{*};
-use super::ray::{*};
-use super::hittable::{*};
-use super::color::{*};
-use super::color::ColorType;
-use super::utility::{*};
-use super::interval::{*};
-use super::INFINITY;
+use crate::vec3::{*};
+use crate::ray::{*};
+use crate::hittable::{*};
+use crate::color::{*};
+use crate::color::ColorType;
+use crate::utility::{*};
+use crate::interval::{*};
+use crate::INFINITY;
 
 use std::sync::{Arc, Mutex, Condvar};
 use crossbeam::thread;

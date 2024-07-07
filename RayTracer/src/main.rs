@@ -1,3 +1,5 @@
+#![allow(warnings)]
+
 mod modules;
 use modules::*;
 
@@ -58,11 +60,12 @@ fn tail_process(img: RgbImage, parameters: (String, String, String, u8), author:
     println!("Render finished with success.");
 }
 
-fn build_camera() -> Camera {
+fn build_camera_1() -> Camera {
     let aspect_ratio = 16.0 / 9.0;
-    let image_width = 400 as usize;
-    // let sample_per_pixel = 500 as usize;
-    let sample_per_pixel = 100 as usize;
+    // let image_width = 400 as usize;
+    let image_width = 1200 as usize;
+    let sample_per_pixel = 500 as usize;
+    // let sample_per_pixel = 100 as usize;
     // let sample_per_pixel = 10 as usize;
     let max_ray_depth = 50 as usize;
     let vfov = 20.0;
@@ -89,16 +92,46 @@ fn build_camera() -> Camera {
     cam
 }
 
-fn build_world() -> HittableList {
+
+fn build_camera_2() -> Camera {
+    let aspect_ratio = 16.0 / 9.0;
+    let image_width = 400 as usize;
+    let sample_per_pixel = 100 as usize;
+    let max_ray_depth = 50 as usize;
+    let vfov = 20.0;
+    
+    let lookfrom = Point3::new(13.0, 2.0, 3.0);   // Point camera is looking from
+    let lookat = Point3::new(0.0, 0.0, 0.0); // Point camera is looking at
+    let vup = Vec3::new(0.0, 1.0, 0.0);     // Camera-relative "up" direction
+
+    let defocus_angle = 0.0;
+    let focus_dist = 10.0;
+
+    let cam: Camera = Camera::new(
+        aspect_ratio, 
+        image_width, 
+        sample_per_pixel, 
+        max_ray_depth, 
+        vfov, 
+        lookfrom, 
+        lookat, 
+        vup, 
+        defocus_angle, 
+        focus_dist
+    );
+    cam
+}
+fn build_world_1() -> HittableList {
     
     let mut world = HittableList::default();
 
-    let material_ground: Material = Lambertian::new(ColorType::new(0.5, 0.5, 0.5)).to_material();
+    let checker = CheckerTexture::new_by_color(0.32, ColorType::new(0.2, 0.3, 0.1), ColorType::new(0.9, 0.9, 0.9)).to_texture();
     
+    let material_ground = Lambertian::new(checker).to_material();
     world.add(Sphere::new_static(
             Point3::new(0.0, -1000.0, 0.0),
             1000.0,
-            material_ground
+            material_ground,
         ).to_object()
     );
     
@@ -115,7 +148,7 @@ fn build_world() -> HittableList {
                     let albedo = ColorType::rand_01().elemul(&ColorType::rand_01());
                     let center_after_move = center + Vec3::new(0.0, rand_range(0.0, 0.5), 0.0);
 
-                    sphere_material = Lambertian::new(albedo).to_material();
+                    sphere_material = Lambertian::new_by_color(albedo).to_material();
 
                     world.add(
                         Sphere::new_moving(center, center_after_move, 0.2, sphere_material).to_object()
@@ -144,7 +177,7 @@ fn build_world() -> HittableList {
     );
 
 
-    let material_2: Material = Lambertian::new(ColorType::new(0.4, 0.2, 0.1)).to_material();
+    let material_2: Material = Lambertian::new_by_color(ColorType::new(0.4, 0.2, 0.1)).to_material();
     world.add(
         Sphere::new_static(Point3::new(-4.0, 1.0, 0.0), 1.0, material_2).to_object()
     );
@@ -154,7 +187,30 @@ fn build_world() -> HittableList {
         Sphere::new_static(Point3::new(4.0, 1.0, 0.0), 1.0, material_3).to_object()
     );
 
-    world
+    world.to_bvh()
+}
+
+
+fn build_world_2() -> HittableList {
+    let mut world = HittableList::default();
+
+    let checker = CheckerTexture::new_by_color(0.32, ColorType::new(0.2, 0.3, 0.1), ColorType::new(0.9, 0.9, 0.9)).to_texture();
+    
+    let material_ground = Lambertian::new(checker).to_material();
+    world.add(Sphere::new_static(
+            Point3::new(0.0, -10.0, 0.0),
+            10.0,
+            material_ground.clone(),
+        ).to_object()
+    );
+    world.add(Sphere::new_static(
+        Point3::new(0.0, 10.0, 0.0),
+        10.0,
+        material_ground.clone(),
+        ).to_object()
+    );
+
+    world.to_bvh()
 }
 
 // main part
@@ -163,8 +219,8 @@ fn main() {
 
     let parameters = init_prompt();
 
-    let cam = build_camera();
-    let world = build_world();
+    let cam = build_camera_1();
+    let world = build_world_1();
 
     let img = cam.render(&(world.to_object()));
 

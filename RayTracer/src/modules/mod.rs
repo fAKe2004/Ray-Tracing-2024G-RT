@@ -17,6 +17,9 @@ pub mod interval;
 // pub mod camera;
 pub mod camera_multithreading;
 pub mod material;
+pub mod aabb;
+pub mod bvh;
+pub mod texture;
 
 
 pub use utility::{*};
@@ -29,3 +32,6 @@ pub use interval::{*};
 // pub use camera::{*};
 pub use camera_multithreading::{*};
 pub use material::{*};
+pub use aabb::{*};
+pub use bvh::{*};
+pub use texture::{*};

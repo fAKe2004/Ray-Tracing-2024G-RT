@@ -1,8 +1,8 @@
-use std::ops::{Add, AddAssign, Sub, SubAssign, Mul, MulAssign, Div, DivAssign, Neg};
+use std::ops::{Add, AddAssign, Sub, SubAssign, Mul, MulAssign, Div, DivAssign, Neg, Index};
 
-use super::utility::{*};
-use super::PI;
-use super::EPS;
+use crate::utility::{*};
+use crate::PI;
+use crate::EPS;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Vec3 {
@@ -307,9 +307,27 @@ impl Neg for Vec3 {
 
 impl Copy for Vec3 {}
 
+
+
+impl Index<usize> for Vec3 {
+    type Output = f64;
+
+    fn index(&self, index: usize) -> &f64 {
+        match index {
+            0 => &self.x,
+            1 => &self.y,
+            2 => &self.z,
+            _ => panic!("invalid indexing"),
+        }
+    }
+}
+
+
+
+
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use crate::*;
 
     #[test]
     fn test_new() {
