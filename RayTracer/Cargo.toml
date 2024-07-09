@@ -13,5 +13,5 @@ crossbeam = "0.7"
 nalgebra = "0.32.1"
 opencv = "0.77.0"
 
-[release]
-opt = 3
+[profile.release]
+opt-level = 3
