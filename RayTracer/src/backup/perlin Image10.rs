@@ -50,12 +50,6 @@ impl Perlin {
       p.z - p.z.floor()
     );
 
-    let (u, v, w) = (
-      u * u * (3.0 - 2.0 * u),
-      v * v * (3.0 - 2.0 * v),
-      w * w * (3.0 - 2.0 * w)
-    );
-
     let (i, j, k) = (
       p.x.floor() as i32,
       p.y.floor() as i32,

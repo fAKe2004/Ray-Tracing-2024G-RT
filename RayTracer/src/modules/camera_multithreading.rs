@@ -198,8 +198,8 @@ impl Camera {
     let bar = get_ProgressBar(self.image_height, self.image_width);
     let bar_wrapper = Arc::new(&bar);
 
-    let camera = Arc::new(self.clone());
-    let world = Arc::new(world);
+    let camera_wrapper = Arc::new(self);
+    let world_wrapper = Arc::new(world);
     let img_mtx = Arc::new(Mutex::new(&mut img));
     
     thread::scope(move |thd|{
@@ -218,8 +218,8 @@ impl Camera {
           
           let bar = Arc::clone(&bar_wrapper);
 
-          let camera = Arc::clone(&camera);
-          let world = Arc::clone(&world);
+          let camera = Arc::clone(&camera_wrapper);
+          let world = Arc::clone(&world_wrapper);
           let img_mtx = Arc::clone(&img_mtx);
           
           let thread_count = Arc::clone(&thread_count);
@@ -232,7 +232,6 @@ impl Camera {
             camera.render_sub(&world, &img_mtx, &bar, 
               i * chunk_width, (i + 1) * chunk_width, 
               j * chunk_height, (j + 1) * chunk_height);
-            // println!("subtask ({}, {}) done", i, j);
             thread_count.fetch_sub(1, Ordering::SeqCst);
             bar.set_message(format!("|{} threads outstanding|", thread_count.load(Ordering::SeqCst)));
             thread_number_controller.notify_one();
