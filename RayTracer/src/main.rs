@@ -1,7 +1,10 @@
 #![allow(warnings)]
 
+
 mod modules;
 use modules::*;
+
+use color::ColorType;
 
 // standard library
 use image::{ImageBuffer, RgbImage}; //接收render传回来的图片，在main中文件输出
@@ -9,7 +12,6 @@ use indicatif::{ProgressBar, ProgressStyle};
 use std::fs::File;
 use std::env;
 use std::io;
-use color::ColorType;
 
 
 // anxilliary part
@@ -77,6 +79,8 @@ fn build_camera_1() -> Camera { // bouncing_spheres
     let defocus_angle = 0.6;
     let focus_dist = 10.0;
 
+    let background = ColorType::new(0.70, 0.80, 1.00);
+
     let cam: Camera = Camera::new(
         aspect_ratio, 
         image_width, 
@@ -87,11 +91,11 @@ fn build_camera_1() -> Camera { // bouncing_spheres
         lookat, 
         vup, 
         defocus_angle, 
-        focus_dist
+        focus_dist,
+        background
     );
     cam
 }
-
 
 fn build_camera_2() -> Camera { // checkered_spheres
     let aspect_ratio = 16.0 / 9.0;
@@ -107,6 +111,8 @@ fn build_camera_2() -> Camera { // checkered_spheres
     let defocus_angle = 0.0;
     let focus_dist = 10.0;
 
+    let background = ColorType::new(0.70, 0.80, 1.00);
+
     let cam: Camera = Camera::new(
         aspect_ratio, 
         image_width, 
@@ -117,7 +123,8 @@ fn build_camera_2() -> Camera { // checkered_spheres
         lookat, 
         vup, 
         defocus_angle, 
-        focus_dist
+        focus_dist,
+        background
     );
     cam
 }
@@ -136,6 +143,8 @@ fn build_camera_3() -> Camera { // earth
     let defocus_angle = 0.0;
     let focus_dist = 10.0;
 
+    let background = ColorType::new(0.70, 0.80, 1.00);
+
     let cam: Camera = Camera::new(
         aspect_ratio, 
         image_width, 
@@ -146,7 +155,8 @@ fn build_camera_3() -> Camera { // earth
         lookat, 
         vup, 
         defocus_angle, 
-        focus_dist
+        focus_dist,
+        background
     );
     cam
 }
@@ -165,6 +175,8 @@ fn build_camera_4() -> Camera { // perlin_spheres
     let defocus_angle = 0.0;
     let focus_dist = 10.0;
 
+    let background = ColorType::new(0.70, 0.80, 1.00);
+
     let cam: Camera = Camera::new(
         aspect_ratio, 
         image_width, 
@@ -175,7 +187,8 @@ fn build_camera_4() -> Camera { // perlin_spheres
         lookat, 
         vup, 
         defocus_angle, 
-        focus_dist
+        focus_dist,
+        background
     );
     cam
 }
@@ -194,6 +207,8 @@ fn build_camera_5() -> Camera { // quads
     let defocus_angle = 0.0;
     let focus_dist = 10.0;
 
+    let background = ColorType::new(0.70, 0.80, 1.00);
+
     let cam: Camera = Camera::new(
         aspect_ratio, 
         image_width, 
@@ -204,11 +219,43 @@ fn build_camera_5() -> Camera { // quads
         lookat, 
         vup, 
         defocus_angle, 
-        focus_dist
+        focus_dist,
+        background
     );
     cam
 }
 
+fn build_camera_6() -> Camera { // simple_light
+    let aspect_ratio = 16.0 / 9.0;
+    let image_width = 400 as usize;
+    let sample_per_pixel = 100 as usize;
+    let max_ray_depth = 50 as usize;
+    let vfov = 20.0;
+    
+    let lookfrom = Point3::new(26.0, 3.0,6.0);   // Point camera is looking from
+    let lookat = Point3::new(0.0, 2.0, 0.0); // Point camera is looking at
+    let vup = Vec3::new(0.0, 1.0, 0.0);     // Camera-relative "up" direction
+
+    let defocus_angle = 0.0;
+    let focus_dist = 10.0;
+
+    let background = ColorType::new(0.0, 0.0, 0.0);
+
+    let cam: Camera = Camera::new(
+        aspect_ratio, 
+        image_width, 
+        sample_per_pixel, 
+        max_ray_depth, 
+        vfov, 
+        lookfrom, 
+        lookat, 
+        vup, 
+        defocus_angle, 
+        focus_dist,
+        background
+    );
+    cam
+}
 
 fn build_world_1() -> HittableList {
     let mut world = HittableList::default();
@@ -361,19 +408,62 @@ fn build_world_5() -> HittableList {
 
     world.to_bvh()
 }
+
+fn build_world_6() -> HittableList {
+    let mut world = HittableList::default();
+    let pertext = NoiseTexture::new(4.0).to_texture();
+    let mat = Lambertian::new(pertext).to_material();
+    world.add(
+        Sphere::new_static(
+            Point3::new(0.0, -1000.0, 0.0),
+            1000.0,
+            mat.clone()
+        ).to_object()
+    );
+    world.add(
+        Sphere::new_static(
+            Point3::new(0.0, 2.0, 0.0),
+            2.0,
+            mat.clone()
+        ).to_object()
+    );
+
+    let difflight = DiffuseLight::new_by_color(ColorType::new(4.0, 4.0, 4.0)).to_material();
+
+    world.add(
+        Quad::new(
+            Point3::new(3.0, 1.0, -2.0),
+            Vec3::new(2.0, 0.0, 0.0),
+            Vec3::new(0.0, 2.0, 0.0),
+            difflight.clone()
+        ).to_object()
+    );
+
+    
+    world.add(
+        Sphere::new_static(
+            Point3::new(0.0, 7.0, 0.0),
+            2.0,
+            difflight.clone()
+        ).to_object()
+    );
+
+    world.to_bvh()
+}
 // main part
 
 fn main() {
 
     let parameters = init_prompt();
 
-    let TYPE = 5;
+    let TYPE = 6;
     let cam = match TYPE {
         1 => build_camera_1(),
         2 => build_camera_2(),
         3 => build_camera_3(),
         4 => build_camera_4(),
         5 => build_camera_5(),
+        6 => build_camera_6(),
         _ => panic!("Not matched"),
     };
     let world = match TYPE {
@@ -382,6 +472,7 @@ fn main() {
         3 => build_world_3(),
         4 => build_world_4(),
         5 => build_world_5(),
+        6 => build_world_6(),
         _ => panic!("Not matched"),
     };
 

@@ -41,14 +41,16 @@ impl Vec3 {
         }
         r
     }
-    pub fn rand_unit() -> Self {
+    pub fn rand_unit() -> Self { 
+        // FIX 球坐标方式并不是均匀分布，会导致沿某个方向光线较多。
         // My approach
-        let phi = rand_range(0.0, PI);
-        let theta = rand_range(0.0, 2.0 * PI);
-        Vec3::new(phi.sin() * theta.cos(), phi.sin() * theta.sin(), phi.cos())
+        // let phi = rand_range(0.0, PI);
+        // let theta = rand_range(0.0, 2.0 * PI);
+        // // println!("PHI {} THETA {}", phi, theta);
+        // Vec3::new(phi.cos(), phi.sin() * theta.cos(), phi.sin() * theta.sin(), )
 
         // textbook approach
-        // Self::rand_in_unit_sphere().normalize()
+        Self::rand_in_unit_sphere().normalize()
     }
     pub fn rand_on_hemisphere(normal: Vec3) -> Self {
         let u = Self::rand_unit();

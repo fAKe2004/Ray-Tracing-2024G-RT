@@ -1,6 +1,7 @@
 use crate::utility::{*};
 use crate::vec3::{*};
 use crate::color::{*};
+use crate::perlin::{*};
 use std::sync::Arc;
 
 pub trait TextureTrait {
@@ -140,5 +141,41 @@ impl TextureTrait for ImageTexture {
   }
   fn to_texture(self) -> Texture {
       Arc::new(self)
+  }
+}
+
+
+
+pub struct NoiseTexture {
+  noise: Perlin,
+  scale: f64,
+}
+
+impl NoiseTexture {
+  pub fn new(scale: f64) -> Self{
+    NoiseTexture {
+      noise: Perlin::new(),
+      scale,
+    }
+  }
+}
+
+impl TextureTrait for NoiseTexture {
+  // fn value(&self, u: f64, v: f64, p: Point3) -> ColorType {
+  //   ColorType::ones() * (1.0 + self.noise.noise(self.scale * p)) / 2.0
+  // }
+  // fn value(&self, u: f64, v: f64, p: Point3) -> ColorType {
+  //   ColorType::ones() * self.noise.turb(p, 7)
+  // }
+
+  fn value(&self, u: f64, v: f64, p: Point3) -> ColorType {
+    ColorType::ones() / 2.0 * (1.0 + (
+      self.scale * p.z + 10.0 * self.noise.turb(p, 7))
+      .sin()
+    )
+  }
+
+  fn to_texture(self) -> Texture {
+    Arc::new(self)
   }
 }

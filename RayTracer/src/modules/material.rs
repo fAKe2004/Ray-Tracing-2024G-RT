@@ -13,9 +13,13 @@ use crate::perlin::{*};
 use std::sync::Arc;
 
 pub trait MaterialTrait {
-  fn scatter(&self, ray_in: &Ray, rec: &HitRecord, attunation: &mut ColorType, scattered: &mut Ray) -> bool;
-  fn to_material(self) ->
- Material;
+  fn scatter(&self, ray_in: &Ray, rec: &HitRecord, attunation: &mut ColorType, scattered: &mut Ray) -> bool {
+    false
+  }
+  fn emitted(&self, u: f64, v: f64, p: Point3) -> ColorType {
+    ColorType::zero()
+  }
+  fn to_material(self) -> Material;
 }
 
 pub type Material = Arc<dyn MaterialTrait + Sync + Send>;
@@ -156,37 +160,26 @@ impl MaterialTrait for Dielectric {
   }
 }
 
-
-pub struct NoiseTexture {
-  noise: Perlin,
-  scale: f64,
+pub struct DiffuseLight  {
+  tex: Texture,
 }
 
-impl NoiseTexture {
-  pub fn new(scale: f64) -> Self{
-    NoiseTexture {
-      noise: Perlin::new(),
-      scale,
+impl DiffuseLight {
+  pub fn new(tex: Texture) -> Self {
+    DiffuseLight {
+      tex,
     }
   }
+  pub fn new_by_color(emit: ColorType) -> Self {
+    Self::new(SolidColor::new(emit).to_texture())
+  }
 }
 
-impl TextureTrait for NoiseTexture {
-  // fn value(&self, u: f64, v: f64, p: Point3) -> ColorType {
-  //   ColorType::ones() * (1.0 + self.noise.noise(self.scale * p)) / 2.0
-  // }
-  // fn value(&self, u: f64, v: f64, p: Point3) -> ColorType {
-  //   ColorType::ones() * self.noise.turb(p, 7)
-  // }
-
-  fn value(&self, u: f64, v: f64, p: Point3) -> ColorType {
-    ColorType::ones() / 2.0 * (1.0 + (
-      self.scale * p.z + 10.0 * self.noise.turb(p, 7))
-      .sin()
-    )
+impl MaterialTrait for DiffuseLight {
+  fn emitted(&self, u: f64, v: f64, p: Point3) -> ColorType {
+      self.tex.value(u, v, p)
   }
-
-  fn to_texture(self) -> Texture {
-    Arc::new(self)
+  fn to_material(self) -> Material {
+      Arc::new(self)
   }
 }
