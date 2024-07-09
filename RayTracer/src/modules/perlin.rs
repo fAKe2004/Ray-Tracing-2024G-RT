@@ -34,7 +34,7 @@ impl Perlin {
   }
 
   pub fn random_permutation(mut p: Vec<i32>, n: usize) -> Vec<i32> {
-    for i in n - 1..0 {
+    for i in (1..=n-1).rev() { // n-1..0 是没用的... 要 (1..=n-1).rev()
       let target = rand_range_int(0, i as i32) as usize;
       let swp = p[i];
       p[i] = p[target];

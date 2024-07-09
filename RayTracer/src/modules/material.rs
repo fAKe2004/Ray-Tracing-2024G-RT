@@ -159,19 +159,21 @@ impl MaterialTrait for Dielectric {
 
 pub struct NoiseTexture {
   noise: Perlin,
+  scale: f64,
 }
 
 impl NoiseTexture {
-  pub fn new() -> Self{
+  pub fn new(scale: f64) -> Self{
     NoiseTexture {
       noise: Perlin::new(),
+      scale,
     }
   }
 }
 
 impl TextureTrait for NoiseTexture {
   fn value(&self, u: f64, v: f64, p: Point3) -> ColorType {
-    ColorType::ones() * self.noise.noise(p)
+    ColorType::ones() * self.noise.noise(self.scale * p)
   }
 
   fn to_texture(self) -> Texture {

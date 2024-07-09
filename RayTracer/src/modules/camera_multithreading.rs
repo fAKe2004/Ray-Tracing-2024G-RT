@@ -214,7 +214,7 @@ impl Camera {
           while !(thread_count.load(Ordering::SeqCst) < THREAD_LIMIT) { // outstanding thread number control
             thread_number_controller.wait(lock_for_condv.lock().unwrap()).unwrap();
           }
-
+          
           
           let bar = Arc::clone(&bar_wrapper);
 

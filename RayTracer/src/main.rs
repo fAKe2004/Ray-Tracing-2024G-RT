@@ -284,7 +284,7 @@ fn build_world_3() -> HittableList {
 
 fn build_world_4() -> HittableList {
     let mut world = HittableList::default();
-    let pertext = NoiseTexture::new().to_texture();
+    let pertext = NoiseTexture::new(4.0).to_texture();
     let material = Lambertian::new(pertext).to_material();
     world.add(Sphere::new_static(
         Point3::new(0.0, -1000.0, 0.0),
