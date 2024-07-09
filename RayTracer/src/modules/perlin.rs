@@ -1,11 +1,11 @@
 use nalgebra::ComplexField;
 
 use crate::utility::{*};
-use crate::vec3::{*};
+use crate::vec3::{self, *};
 
 const PERLIN_POINT_COUNT: usize = 256;
 pub struct Perlin {
-  randfloat: Vec<f64>,
+  randvec: Vec<Vec3>,
   perm_x: Vec<i32>,
   perm_y: Vec<i32>,
   perm_z: Vec<i32>,
@@ -13,12 +13,12 @@ pub struct Perlin {
 
 impl Perlin {
   pub fn new() -> Self {
-    let mut randfloat = vec![0.0 as f64; PERLIN_POINT_COUNT];
+    let mut randvec = vec![Vec3::zero(); PERLIN_POINT_COUNT];
     for i in 0..PERLIN_POINT_COUNT {
-      randfloat[i] = rand_01();
+      randvec[i] = Vec3::rand_unit();
     }
     Perlin {
-      randfloat,
+      randvec,
       perm_x: Self::generate_perm(),
       perm_y: Self::generate_perm(),
       perm_z: Self::generate_perm(),
@@ -50,11 +50,6 @@ impl Perlin {
       p.z - p.z.floor()
     );
 
-    let (u, v, w) = (
-      u * u * (3.0 - 2.0 * u),
-      v * v * (3.0 - 2.0 * v),
-      w * w * (3.0 - 2.0 * w)
-    );
 
     let (i, j, k) = (
       p.x.floor() as i32,
@@ -62,12 +57,12 @@ impl Perlin {
       p.z.floor() as i32
     );
 
-    let mut c = vec![vec![vec![0.0 as f64; 2]; 2]; 2];
+    let mut c = vec![vec![vec![Vec3::zero(); 2]; 2]; 2];
 
     for di in 0..2 as i32 {
       for dj in 0..2 as i32 {
         for dk in 0..2 as i32 {
-          c[di as usize][dj as usize][dk as usize] = self.randfloat[
+          c[di as usize][dj as usize][dk as usize] = self.randvec[
             (self.perm_x[((i + di) & 255) as usize] ^
             self.perm_y[((j + dj) & 255) as usize] ^
             self.perm_z[((k + dk) & 255) as usize]) as usize
@@ -75,19 +70,25 @@ impl Perlin {
         }
       }
     }
-    Self::trilinear_interp(c, u, v, w)
+    Self::perlin_interp(c, u, v, w)
   }
 
-  fn trilinear_interp(c: Vec<Vec<Vec<f64>>>, u: f64, v: f64, w: f64) -> f64 {
+  fn perlin_interp(c: Vec<Vec<Vec<Vec3>>>, u: f64, v: f64, w: f64) -> f64 {
+    let (uu, vv, ww) = (
+      u * u * (3.0 - 2.0 * u),
+      v * v * (3.0 - 2.0 * v),
+      w * w * (3.0 - 2.0 * w)
+    );
     let mut accum = 0.0;
     for i in 0..2 as i32 {
       for j in 0..2 as i32 {
         for k in 0..2 as i32 {
+          let weight_vec = Vec3::new(u - i as f64, v - j as f64, w - k as f64);
           accum += 
-            (i as f64 * u + (1 - i) as f64 * (1.0 - u)) *
-            (j as f64 * v + (1 - j) as f64 * (1.0 - v)) *
-            (k as f64 * w + (1 - k) as f64 * (1.0 - w))
-            * c[i as usize][j as usize][k as usize];
+            (i as f64 * uu + (1 - i) as f64 * (1.0 - uu)) *
+            (j as f64 * vv + (1 - j) as f64 * (1.0 - vv)) *
+            (k as f64 * ww + (1 - k) as f64 * (1.0 - ww))
+            * c[i as usize][j as usize][k as usize].dot(&weight_vec);
         }
       }
     }
