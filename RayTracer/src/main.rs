@@ -257,6 +257,38 @@ fn build_camera_6() -> Camera { // simple_light
     cam
 }
 
+fn build_camera_7() -> Camera { // simple_light
+    let aspect_ratio = 1.0;
+    let image_width = 600 as usize;
+    let sample_per_pixel = 200 as usize;
+    let max_ray_depth = 50 as usize;
+    let vfov = 40.0;
+    
+    let lookfrom = Point3::new(278.0, 278.0,-800.0);   // Point camera is looking from
+    let lookat = Point3::new(278.0, 278.0, 0.0); // Point camera is looking at
+    let vup = Vec3::new(0.0, 1.0, 0.0);     // Camera-relative "up" direction
+
+    let defocus_angle = 0.0;
+    let focus_dist = 10.0;
+
+    let background = ColorType::new(0.0, 0.0, 0.0);
+
+    let cam: Camera = Camera::new(
+        aspect_ratio, 
+        image_width, 
+        sample_per_pixel, 
+        max_ray_depth, 
+        vfov, 
+        lookfrom, 
+        lookat, 
+        vup, 
+        defocus_angle, 
+        focus_dist,
+        background
+    );
+    cam
+}
+
 fn build_world_1() -> HittableList {
     let mut world = HittableList::default();
 
@@ -450,13 +482,66 @@ fn build_world_6() -> HittableList {
 
     world.to_bvh()
 }
+
+fn build_world_7() -> HittableList {
+    let mut world = HittableList::default();
+    let red = Lambertian::new_by_color(ColorType::new(0.65, 0.05, 0.05)).to_material();
+    let white = Lambertian::new_by_color(ColorType::new(0.73, 0.73, 0.73)).to_material();
+    let green = Lambertian::new_by_color(ColorType::new(0.12, 0.45, 0.12)).to_material();
+    let light = DiffuseLight::new_by_color(ColorType::new(15.0, 15.0, 15.0)).to_material();
+
+    world.add(Quad::new(
+        Point3::new(555.0, 0.0, 0.0),
+        Vec3::new(0.0, 555.0, 0.0),
+        Vec3::new(0.0, 0.0, 555.0),
+        green
+    ).to_object());
+
+    world.add(Quad::new(
+        Point3::new(0.0, 0.0, 0.0),
+        Vec3::new(0.0, 555.0, 0.0),
+        Vec3::new(0.0, 0.0, 555.0),
+        red
+    ).to_object());
+
+
+    world.add(Quad::new(
+        Point3::new(343.0, 554.0, 332.0),
+        Vec3::new(-130.0, 0.0, 0.0),
+        Vec3::new(0.0, 0.0, -105.0),
+        light
+    ).to_object());
+
+    world.add(Quad::new(
+        Point3::new(0.0, 0.0, 0.0),
+        Vec3::new(555.0, 0.0, 0.0),
+        Vec3::new(0.0, 0.0, 555.0),
+        white.clone()
+    ).to_object());
+
+    world.add(Quad::new(
+        Point3::new(555.0, 555.0, 555.0),
+        Vec3::new(-555.0, 0.0, 0.0),
+        Vec3::new(0.0, 0.0, -555.0),
+        white.clone()
+    ).to_object());
+
+    world.add(Quad::new(
+        Point3::new(0.0, 0.0, 555.0),
+        Vec3::new(555.0, 0.0, 0.0),
+        Vec3::new(0.0,555.0, 0.0),
+        white.clone()
+    ).to_object());
+
+    world.to_bvh()
+}
 // main part
 
 fn main() {
 
     let parameters = init_prompt();
 
-    let TYPE = 6;
+    let TYPE = 7;
     let cam = match TYPE {
         1 => build_camera_1(),
         2 => build_camera_2(),
@@ -464,6 +549,7 @@ fn main() {
         4 => build_camera_4(),
         5 => build_camera_5(),
         6 => build_camera_6(),
+        7 => build_camera_7(),
         _ => panic!("Not matched"),
     };
     let world = match TYPE {
@@ -473,6 +559,7 @@ fn main() {
         4 => build_world_4(),
         5 => build_world_5(),
         6 => build_world_6(),
+        7 => build_world_7(),
         _ => panic!("Not matched"),
     };
 

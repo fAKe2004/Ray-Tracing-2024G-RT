@@ -170,7 +170,7 @@ impl Camera {
     }
 
     let mut rec = HitRecord::default();
-    if !world.hit(ray, Interval::new(0.1 /* fix shadow acne */, INFINITY), &mut rec) {
+    if !world.hit(ray, Interval::new(EPS /* fix shadow acne */, INFINITY), &mut rec) {
       return self.background;
     }
     let mut scattered = Ray::default();
