@@ -8,6 +8,7 @@ use crate::hittable::{*};
 use crate::color::{*};
 use crate::utility::{*};
 use crate::texture::{*};
+use crate::perlin::{*};
 
 use std::sync::Arc;
 
@@ -152,5 +153,28 @@ impl MaterialTrait for Dielectric {
   fn to_material(self) ->
   Material {
      Arc::new(self)
+  }
+}
+
+
+pub struct NoiseTexture {
+  noise: Perlin,
+}
+
+impl NoiseTexture {
+  pub fn new() -> Self{
+    NoiseTexture {
+      noise: Perlin::new(),
+    }
+  }
+}
+
+impl TextureTrait for NoiseTexture {
+  fn value(&self, u: f64, v: f64, p: Point3) -> ColorType {
+    ColorType::ones() * self.noise.noise(p)
+  }
+
+  fn to_texture(self) -> Texture {
+    Arc::new(self)
   }
 }

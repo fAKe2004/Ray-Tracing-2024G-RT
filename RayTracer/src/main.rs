@@ -60,7 +60,7 @@ fn tail_process(img: RgbImage, parameters: (String, String, String, u8), author:
     println!("Render finished with success.");
 }
 
-fn build_camera_1() -> Camera {
+fn build_camera_1() -> Camera { // bouncing_spheres
     let aspect_ratio = 16.0 / 9.0;
     // let image_width = 400 as usize;
     let image_width = 1200 as usize;
@@ -93,7 +93,7 @@ fn build_camera_1() -> Camera {
 }
 
 
-fn build_camera_2() -> Camera {
+fn build_camera_2() -> Camera { // checkered_spheres
     let aspect_ratio = 16.0 / 9.0;
     let image_width = 400 as usize;
     let sample_per_pixel = 100 as usize;
@@ -122,7 +122,7 @@ fn build_camera_2() -> Camera {
     cam
 }
 
-fn build_camera_3() -> Camera {
+fn build_camera_3() -> Camera { // earth
     let aspect_ratio = 16.0 / 9.0;
     let image_width = 400 as usize;
     let sample_per_pixel = 100 as usize;
@@ -151,8 +151,37 @@ fn build_camera_3() -> Camera {
     cam
 }
 
-fn build_world_1() -> HittableList {
+fn build_camera_4() -> Camera { // perlin_spheres
+    let aspect_ratio = 16.0 / 9.0;
+    let image_width = 400 as usize;
+    let sample_per_pixel = 100 as usize;
+    let max_ray_depth = 50 as usize;
+    let vfov = 20.0;
     
+    let lookfrom = Point3::new(13.0, 2.0, 3.0);   // Point camera is looking from
+    let lookat = Point3::new(0.0, 0.0, 0.0); // Point camera is looking at
+    let vup = Vec3::new(0.0, 1.0, 0.0);     // Camera-relative "up" direction
+
+    let defocus_angle = 0.0;
+    let focus_dist = 10.0;
+
+    let cam: Camera = Camera::new(
+        aspect_ratio, 
+        image_width, 
+        sample_per_pixel, 
+        max_ray_depth, 
+        vfov, 
+        lookfrom, 
+        lookat, 
+        vup, 
+        defocus_angle, 
+        focus_dist
+    );
+    cam
+}
+
+
+fn build_world_1() -> HittableList {
     let mut world = HittableList::default();
 
     let checker = CheckerTexture::new_by_color(0.32, ColorType::new(0.2, 0.3, 0.1), ColorType::new(0.9, 0.9, 0.9)).to_texture();
@@ -252,14 +281,45 @@ fn build_world_3() -> HittableList {
 
     world.to_bvh()
 }
+
+fn build_world_4() -> HittableList {
+    let mut world = HittableList::default();
+    let pertext = NoiseTexture::new().to_texture();
+    let material = Lambertian::new(pertext).to_material();
+    world.add(Sphere::new_static(
+        Point3::new(0.0, -1000.0, 0.0),
+        1000.0,
+        material.clone()
+    ).to_object());
+    world.add(Sphere::new_static(
+        Point3::new(0.0, 2.0, 0.0),
+        2.0,
+        material.clone()
+    ).to_object());
+
+    world.to_bvh()
+}
 // main part
 
 fn main() {
 
     let parameters = init_prompt();
 
-    let cam = build_camera_3();
-    let world = build_world_3();
+    let TYPE = 4;
+    let cam = match TYPE {
+        1 => build_camera_1(),
+        2 => build_camera_2(),
+        3 => build_camera_3(),
+        4 => build_camera_4(),
+        _ => panic!("Not matched"),
+    };
+    let world = match TYPE {
+        1 => build_world_1(),
+        2 => build_world_2(),
+        3 => build_world_3(),
+        4 => build_world_4(),
+        _ => panic!("Not matched"),
+    };
 
     let img = cam.render(&(world.to_object()));
 
