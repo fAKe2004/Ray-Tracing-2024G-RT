@@ -111,7 +111,7 @@ impl Hittable for Quad {
 }
 
 pub fn build_box(a: Point3, b: Point3, mat: Material) -> HittableList {
-  let sides = HittableList::default();
+  let mut sides = HittableList::default();
   let min = Point3::new(a.x.min(b.x), a.y.min(b.y), a.z.min(b.z));
   let max = Point3::new(a.x.max(b.x), a.y.max(b.y), a.z.max(b.z));
 

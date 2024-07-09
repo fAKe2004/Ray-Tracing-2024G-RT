@@ -1,5 +1,5 @@
 use crate::INFINITY;
-
+use std::ops::{Add};
 pub struct Interval {
   pub min: f64,
   pub max: f64,
@@ -89,4 +89,19 @@ impl Clone for Interval {
 }
 
 impl Copy for Interval {
+}
+
+impl Add<f64> for Interval {
+  type Output = Interval;
+  fn add(self, offset: f64) -> Interval{
+    Interval::new(self.min + offset, self.max + offset)
+  }
+}
+
+
+impl Add<Interval> for f64 {
+  type Output = Interval;
+  fn add(self, interval: Interval) -> Interval{
+    interval + self
+  }
 }

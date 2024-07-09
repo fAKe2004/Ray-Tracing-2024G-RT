@@ -1,4 +1,5 @@
 
+use crate::{degrees_to_radians, INFINITY};
 // hittable and hittable list
 use crate::vec3::{*};
 use crate::ray::{*};
@@ -143,5 +144,129 @@ impl Hittable for HittableList {
   }
   fn bounding_box(&self) -> Aabb {
       self.bbox
+  }
+}
+
+
+// Instances
+pub struct Translate {
+  object: Object,
+  offset: Vec3,
+  bbox: Aabb,
+}
+
+impl Translate {
+  pub fn new(object: Object, offset: Vec3) -> Self {
+    let bbox = object.bounding_box() + offset;
+    Self {
+      object,
+      offset,
+      bbox,
+    }
+  }
+}
+
+impl Hittable for Translate {
+  fn hit(&self, ray: &Ray, ray_t: Interval, rec: &mut HitRecord) -> bool {
+    let offset_ray = Ray::new(ray.orig - self.offset, ray.dir, ray.tm);
+
+    if self.object.hit(&offset_ray, ray_t, rec) {
+      rec.p += self.offset;
+      true
+    } else {
+      false
+    }
+  }
+  fn bounding_box(&self) -> Aabb {
+    self.bbox
+  }
+  fn to_object(self) -> Object {
+    Arc::new(self)
+  }
+}
+
+pub struct RotateY {
+  object: Object,
+  sin_theta: f64,
+  cos_theta: f64,
+  bbox: Aabb,
+}
+
+impl RotateY {
+  pub fn new(object: Object, angle: f64) -> Self {
+    let radians = degrees_to_radians(angle);
+    let sin_theta = radians.sin();
+    let cos_theta = radians.cos();
+    let bbox = object.bounding_box();
+
+    let mut rotate_y = Self {
+      object,
+      sin_theta,
+      cos_theta,
+      bbox: Aabb::default(),
+    };
+
+    let mut min = Point3::new(INFINITY, INFINITY, INFINITY);
+    let mut max = Point3::new(-INFINITY, -INFINITY, -INFINITY);
+
+    for i in 0..2 {
+      for j in 0..2 {
+        for k in 0..2 {
+          let x = if i == 1 { bbox.x.max } else { bbox.x.min};
+          let y = if j == 1 { bbox.y.max } else { bbox.y.min};
+          let z = if k == 1 { bbox.z.max } else { bbox.z.min};
+          
+          let tester = rotate_y.rotate_pos(Vec3::new(x, y, z));
+          for idx in 0..3 {
+            min[idx] = min[idx].min(tester[idx]);
+            max[idx] = min[idx].max(tester[idx]);
+          }
+        }
+      }
+    }
+    let bbox = Aabb::new_by_point(min, max);
+    rotate_y.bbox = bbox;
+    rotate_y
+  }
+
+  fn rotate_neg(&self, v: Vec3) -> Vec3 {
+    Vec3::new(
+      self.cos_theta * v.x - self.sin_theta * v.z,
+      v.y,
+      self.sin_theta * v.x + self.cos_theta * v.z
+    )
+  }
+
+  fn rotate_pos(&self, v: Vec3) -> Vec3 {
+    Vec3::new(
+      self.cos_theta * v.x + self.sin_theta * v.z,
+      v.y,
+      -self.sin_theta * v.x + self.cos_theta * v.z
+    )
+  }
+}
+
+impl Hittable for RotateY {
+  fn hit(&self, ray: &Ray, ray_t: Interval, rec: &mut HitRecord) -> bool {
+    let orig = self.rotate_neg(ray.orig);
+    let dir = self.rotate_neg(ray.dir);
+
+    let rotated_ray = Ray::new(orig, dir, ray.tm);
+
+    if !self.object.hit(&rotated_ray, ray_t, rec) {
+      return false;
+    }
+
+    rec.p = self.rotate_pos(rec.p);
+    rec.normal = self.rotate_pos(rec.normal);
+    true
+  }
+
+  fn to_object(self) -> Object {
+    Arc::new(self)
+  }
+
+  fn bounding_box(&self) -> Aabb {
+    self.bbox
   }
 }

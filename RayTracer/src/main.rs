@@ -533,6 +533,24 @@ fn build_world_7() -> HittableList {
         white.clone()
     ).to_object());
 
+    let box1 = build_box(
+        Point3::new(0.0, 0.0, 0.0), 
+        Point3::new(165.0, 330.0, 165.0), 
+        white.clone()
+    ).to_object();
+    let box1 = RotateY::new(box1, 15.0).to_object();
+    let box1 = Translate::new(box1, Vec3::new(265.0, 0.0, 295.0)).to_object();
+    world.add(box1);
+
+    let box2 = build_box(
+        Point3::new(0.0, 0.0, 0.0), 
+        Point3::new(165.0, 165.0, 165.0), 
+        white.clone()
+    ).to_object();
+    let box2 = RotateY::new(box2, -18.0).to_object();
+    let box2 = Translate::new(box2, Vec3::new(130.0, 0.0, 65.0)).to_object();
+    world.add(box2);
+
     world.to_bvh()
 }
 // main part

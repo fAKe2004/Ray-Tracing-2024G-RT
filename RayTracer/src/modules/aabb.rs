@@ -1,4 +1,5 @@
 use std::cmp::{min, max};
+use std::ops::{Add};
 
 use crate::utility::{*};
 use crate::vec3::{*};
@@ -7,9 +8,9 @@ use crate::ray::{*};
 use crate::{Interval, EPS};
 
 pub struct Aabb { 
-  x: Interval, // assumed to have min < max
-  y: Interval,
-  z: Interval,
+  pub x: Interval, // assumed to have min < max
+  pub y: Interval,
+  pub z: Interval,
 }
 
 impl Aabb {
@@ -111,4 +112,19 @@ impl Clone for Aabb {
 
 impl Copy for Aabb {
 
+}
+
+impl Add<Vec3> for Aabb {
+  type Output = Aabb;
+  fn add(self, offset: Vec3) -> Aabb {
+    Aabb::new(self.x + offset.x, self.y + offset.y, self.z + offset.z)
+  }
+}
+
+
+impl Add<Aabb> for Vec3 {
+  type Output = Aabb;
+  fn add(self, bbox: Aabb) -> Aabb {
+    bbox + self
+  }
 }

@@ -170,17 +170,18 @@ impl Camera {
     }
 
     let mut rec = HitRecord::default();
-    if !world.hit(ray, Interval::new(EPS /* fix shadow acne */, INFINITY), &mut rec) {
-      return self.background;
-    }
-    let mut scattered = Ray::default();
-    let mut attenuation = ColorType::zero();
-    let color_from_emission = rec.mat.emitted(rec.u, rec.v, rec.p);
-    if rec.mat.scatter(ray, &rec, &mut attenuation, &mut scattered) {
-      let color_from_scatter = attenuation.elemul(&self.ray_color(&scattered, depth + 1, world));
-      color_from_emission + color_from_scatter
-    } else { 
-      color_from_emission
+    if world.hit(ray, Interval::new(EPS /* fix shadow acne */, INFINITY), &mut rec) {
+      let mut scattered = Ray::default();
+      let mut attenuation = ColorType::zero();
+      let color_from_emission = rec.mat.emitted(rec.u, rec.v, rec.p);
+      if rec.mat.scatter(ray, &rec, &mut attenuation, &mut scattered) {
+        let color_from_scatter = attenuation.elemul(&self.ray_color(&scattered, depth + 1, world));
+        color_from_emission + color_from_scatter
+      } else { 
+        color_from_emission
+      }
+    } else {
+      self.background // missed
     }
   }
 
