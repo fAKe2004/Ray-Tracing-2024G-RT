@@ -1,3 +1,5 @@
+use nalgebra::ComplexField;
+
 use crate::utility::{*};
 use crate::vec3::{*};
 
@@ -42,12 +44,47 @@ impl Perlin {
   }
 
   pub fn noise(&self, p: Point3) -> f64 {
-    let (i, j, k) = (
-      (4.0 * p.x) as i32 & 255,
-      (4.0 * p.y) as i32 & 255,
-      (4.0 * p.z) as i32 & 255, // 不能提前转 usize，不然会负数会炸
+    let (u, v, w) = (
+      p.x - p.x.floor(),
+      p.y - p.y.floor(),
+      p.z - p.z.floor()
     );
 
-    self.randfloat[(self.perm_x[i as usize] ^ self.perm_y[j as usize] ^ self.perm_z[k as usize]) as usize]
+    let (i, j, k) = (
+      p.x.floor() as i32,
+      p.y.floor() as i32,
+      p.z.floor() as i32
+    );
+
+    let mut c = vec![vec![vec![0.0 as f64; 2]; 2]; 2];
+
+    for di in 0..2 as i32 {
+      for dj in 0..2 as i32 {
+        for dk in 0..2 as i32 {
+          c[di as usize][dj as usize][dk as usize] = self.randfloat[
+            (self.perm_x[((i + di) & 255) as usize] ^
+            self.perm_y[((j + dj) & 255) as usize] ^
+            self.perm_z[((k + dk) & 255) as usize]) as usize
+          ];
+        }
+      }
+    }
+    Self::trilinear_interp(c, u, v, w)
+  }
+
+  fn trilinear_interp(c: Vec<Vec<Vec<f64>>>, u: f64, v: f64, w: f64) -> f64 {
+    let mut accum = 0.0;
+    for i in 0..2 as i32 {
+      for j in 0..2 as i32 {
+        for k in 0..2 as i32 {
+          accum += 
+            (i as f64 * u + (1 - i) as f64 * (1.0 - u)) *
+            (j as f64 * v + (1 - j) as f64 * (1.0 - v)) *
+            (k as f64 * w + (1 - k) as f64 * (1.0 - w))
+            * c[i as usize][j as usize][k as usize];
+        }
+      }
+    }
+    accum
   }
 }
