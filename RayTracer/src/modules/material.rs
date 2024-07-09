@@ -172,8 +172,11 @@ impl NoiseTexture {
 }
 
 impl TextureTrait for NoiseTexture {
+  // fn value(&self, u: f64, v: f64, p: Point3) -> ColorType {
+  //   ColorType::ones() * (1.0 + self.noise.noise(self.scale * p)) / 2.0
+  // }
   fn value(&self, u: f64, v: f64, p: Point3) -> ColorType {
-    ColorType::ones() * (1.0 + self.noise.noise(self.scale * p)) / 2.0
+    ColorType::ones() * self.noise.turb(p, 7)
   }
 
   fn to_texture(self) -> Texture {

@@ -73,6 +73,19 @@ impl Perlin {
     Self::perlin_interp(c, u, v, w)
   }
 
+  pub fn turb(&self, mut p: Point3, depth: usize) -> f64 {
+    let mut accum = 0.0;
+    let mut weight = 1.0;
+
+    for i in 0..depth {
+      accum += weight * self.noise(p);
+      weight *= 0.5;
+      p *= 2.0;
+    }
+
+    accum.abs()
+  } 
+
   fn perlin_interp(c: Vec<Vec<Vec<Vec3>>>, u: f64, v: f64, w: f64) -> f64 {
     let (uu, vv, ww) = (
       u * u * (3.0 - 2.0 * u),
