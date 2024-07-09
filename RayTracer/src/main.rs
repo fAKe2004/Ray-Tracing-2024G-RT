@@ -180,6 +180,35 @@ fn build_camera_4() -> Camera { // perlin_spheres
     cam
 }
 
+fn build_camera_5() -> Camera { // quads
+    let aspect_ratio = 1.0;
+    let image_width = 400 as usize;
+    let sample_per_pixel = 100 as usize;
+    let max_ray_depth = 50 as usize;
+    let vfov = 80.0;
+    
+    let lookfrom = Point3::new(0.0, 0.0, 9.0);   // Point camera is looking from
+    let lookat = Point3::new(0.0, 0.0, 0.0); // Point camera is looking at
+    let vup = Vec3::new(0.0, 1.0, 0.0);     // Camera-relative "up" direction
+
+    let defocus_angle = 0.0;
+    let focus_dist = 10.0;
+
+    let cam: Camera = Camera::new(
+        aspect_ratio, 
+        image_width, 
+        sample_per_pixel, 
+        max_ray_depth, 
+        vfov, 
+        lookfrom, 
+        lookat, 
+        vup, 
+        defocus_angle, 
+        focus_dist
+    );
+    cam
+}
+
 
 fn build_world_1() -> HittableList {
     let mut world = HittableList::default();
@@ -249,7 +278,6 @@ fn build_world_1() -> HittableList {
     world.to_bvh()
 }
 
-
 fn build_world_2() -> HittableList {
     let mut world = HittableList::default();
 
@@ -299,18 +327,53 @@ fn build_world_4() -> HittableList {
 
     world.to_bvh()
 }
+
+fn build_world_5() -> HittableList {
+    let mut world = HittableList::default();
+
+    let left_red = Lambertian::new_by_color(ColorType::new(1.0, 0.2, 0.2)).to_material();
+    let back_green = Lambertian::new_by_color(ColorType::new(0.2, 1.0, 0.2)).to_material();
+    let right_blue = Lambertian::new_by_color(ColorType::new(0.2, 0.2, 1.0)).to_material();
+    let upper_orange = Lambertian::new_by_color(ColorType::new(1.0, 0.5, 0.0)).to_material();
+    let lower_teal = Lambertian::new_by_color(ColorType::new(0.2, 0.8, 0.8)).to_material();
+
+    world.add(
+        Quad::new(Point3::new(-3.0, -2.0, 5.0), Vec3::new(0.0, 0.0, -4.0), Vec3::new(0.0, 4.0, 0.0), left_red).to_object()
+    );
+
+    world.add(
+        Quad::new(Point3::new(-2.0, -2.0, 0.0), Vec3::new(4.0, 0.0, 0.0), Vec3::new(0.0, 4.0, 0.0), back_green).to_object()
+    );
+
+
+    world.add(
+        Quad::new(Point3::new(3.0, -2.0, 1.0), Vec3::new(0.0, 0.0, 4.0), Vec3::new(0.0, 4.0, 0.0), right_blue).to_object()
+    );
+
+    world.add(
+        Quad::new(Point3::new(-2.0, 3.0, 1.0), Vec3::new(4.0, 0.0, 0.0), Vec3::new(0.0, 0.0, 4.0), upper_orange).to_object()
+    );
+
+    
+    world.add(
+        Quad::new(Point3::new(-2.0, -3.0, 5.0), Vec3::new(4.0, 0.0, 0.0), Vec3::new(0.0, 0.0, -4.0), lower_teal).to_object()
+    );
+
+    world.to_bvh()
+}
 // main part
 
 fn main() {
 
     let parameters = init_prompt();
 
-    let TYPE = 4;
+    let TYPE = 5;
     let cam = match TYPE {
         1 => build_camera_1(),
         2 => build_camera_2(),
         3 => build_camera_3(),
         4 => build_camera_4(),
+        5 => build_camera_5(),
         _ => panic!("Not matched"),
     };
     let world = match TYPE {
@@ -318,6 +381,7 @@ fn main() {
         2 => build_world_2(),
         3 => build_world_3(),
         4 => build_world_4(),
+        5 => build_world_5(),
         _ => panic!("Not matched"),
     };
 

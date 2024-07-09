@@ -22,6 +22,7 @@ pub mod aabb;
 pub mod bvh;
 pub mod texture;
 pub mod perlin;
+pub mod planar;
 
 
 pub use utility::{*};
@@ -38,3 +39,4 @@ pub use aabb::{*};
 pub use bvh::{*};
 pub use texture::{*};
 pub use perlin::{*};
+pub use planar::{*};

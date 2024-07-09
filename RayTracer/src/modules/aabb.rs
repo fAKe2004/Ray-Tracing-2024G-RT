@@ -4,7 +4,7 @@ use crate::utility::{*};
 use crate::vec3::{*};
 use crate::ray::{*};
 
-use crate::Interval;
+use crate::{Interval, EPS};
 
 pub struct Aabb { 
   x: Interval, // assumed to have min < max
@@ -18,23 +18,23 @@ impl Aabb {
       x,
       y,
       z,
-    }
+    }.pad_to_minimums()
   }
 
-  pub fn new_by_point(a: Point3, b: Point3) -> Self{
+  pub fn new_by_point(a: Point3, b: Point3) -> Self {
     Aabb {
       x: Interval::new_adaptive(a.x, b.x),
       y: Interval::new_adaptive(a.y, b.y),
       z: Interval::new_adaptive(a.z, b.z),
-    }
+    }.pad_to_minimums()
   }
 
-  pub fn new_by_aabb(a: Aabb, b: Aabb) -> Self{
+  pub fn new_by_aabb(a: Aabb, b: Aabb) -> Self {
     Aabb {
       x: Interval::new_union(a.x, b.x),
       y: Interval::new_union(a.y, b.y),
       z: Interval::new_union(a.z, b.z),
-    }
+    }.pad_to_minimums()
   }
 
 
@@ -85,6 +85,19 @@ impl Aabb {
     } else {
       2
     }
+  }
+
+  fn pad_to_minimums(&mut self) -> Self {
+    if self.x.size() < EPS { 
+      self.x = self.x.expand(EPS); 
+    }
+    if self.y.size() < EPS { 
+      self.y = self.y.expand(EPS); 
+    }
+    if self.z.size() < EPS { 
+      self.z = self.z.expand(EPS); 
+    }
+    *self
   }
 }
 
