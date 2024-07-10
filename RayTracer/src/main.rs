@@ -321,7 +321,39 @@ fn build_camera_8() -> Camera { // cornell_smoke
     cam
 }
 
-fn build_world_1() -> HittableList {
+fn build_camera_9(image_width: usize, sample_per_pixel: usize, max_ray_depth: usize) -> Camera { // cornell_smoke
+    let aspect_ratio = 1.0;
+    // let image_width = 1200 as usize;
+    // let sample_per_pixel = 1000 as usize;
+    // let max_ray_depth = 50 as usize;
+    let vfov = 40.0;
+    
+    let lookfrom = Point3::new(478.0, 278.0,-600.0);   // Point camera is looking from
+    let lookat = Point3::new(278.0, 278.0, 0.0); // Point camera is looking at
+    let vup = Vec3::new(0.0, 1.0, 0.0);     // Camera-relative "up" direction
+
+    let defocus_angle = 0.0;
+    let focus_dist = 10.0;
+
+    let background = ColorType::new(0.0, 0.0, 0.0);
+
+    let cam: Camera = Camera::new(
+        aspect_ratio, 
+        image_width, 
+        sample_per_pixel, 
+        max_ray_depth, 
+        vfov, 
+        lookfrom, 
+        lookat, 
+        vup, 
+        defocus_angle, 
+        focus_dist,
+        background
+    );
+    cam
+}
+
+fn build_world_1() -> Object {
     let mut world = HittableList::default();
 
     let checker = CheckerTexture::new_by_color(0.32, ColorType::new(0.2, 0.3, 0.1), ColorType::new(0.9, 0.9, 0.9)).to_texture();
@@ -389,7 +421,7 @@ fn build_world_1() -> HittableList {
     world.to_bvh()
 }
 
-fn build_world_2() -> HittableList {
+fn build_world_2() -> Object {
     let mut world = HittableList::default();
 
     let checker = CheckerTexture::new_by_color(0.32, ColorType::new(0.2, 0.3, 0.1), ColorType::new(0.9, 0.9, 0.9)).to_texture();
@@ -411,7 +443,7 @@ fn build_world_2() -> HittableList {
     world.to_bvh()
 }
 
-fn build_world_3() -> HittableList {
+fn build_world_3() -> Object {
     let mut world = HittableList::default();
     let erath_texture = ImageTexture::new("input/earthmap.jpg").to_texture();
     let erath_surface = Lambertian::new(erath_texture).to_material();
@@ -421,7 +453,7 @@ fn build_world_3() -> HittableList {
     world.to_bvh()
 }
 
-fn build_world_4() -> HittableList {
+fn build_world_4() -> Object {
     let mut world = HittableList::default();
     let pertext = NoiseTexture::new(4.0).to_texture();
     let material = Lambertian::new(pertext).to_material();
@@ -439,7 +471,7 @@ fn build_world_4() -> HittableList {
     world.to_bvh()
 }
 
-fn build_world_5() -> HittableList {
+fn build_world_5() -> Object {
     let mut world = HittableList::default();
 
     let left_red = Lambertian::new_by_color(ColorType::new(1.0, 0.2, 0.2)).to_material();
@@ -473,7 +505,7 @@ fn build_world_5() -> HittableList {
     world.to_bvh()
 }
 
-fn build_world_6() -> HittableList {
+fn build_world_6() -> Object {
     let mut world = HittableList::default();
     let pertext = NoiseTexture::new(4.0).to_texture();
     let mat = Lambertian::new(pertext).to_material();
@@ -515,7 +547,7 @@ fn build_world_6() -> HittableList {
     world.to_bvh()
 }
 
-fn build_world_7() -> HittableList {
+fn build_world_7() -> Object {
     let mut world = HittableList::default();
     let red = Lambertian::new_by_color(ColorType::new(0.65, 0.05, 0.05)).to_material();
     let white = Lambertian::new_by_color(ColorType::new(0.73, 0.73, 0.73)).to_material();
@@ -586,7 +618,7 @@ fn build_world_7() -> HittableList {
     world.to_bvh()
 }
 
-fn build_world_8() -> HittableList {
+fn build_world_8() -> Object {
     let mut world = HittableList::default();
     let red = Lambertian::new_by_color(ColorType::new(0.65, 0.05, 0.05)).to_material();
     let white = Lambertian::new_by_color(ColorType::new(0.73, 0.73, 0.73)).to_material();
@@ -658,13 +690,131 @@ fn build_world_8() -> HittableList {
 
     world.to_bvh()
 }
+
+fn build_world_9() -> Object {
+    let mut world = HittableList::default();
+    let ground = Lambertian::new_by_color(ColorType::new(0.48, 0.83, 0.53)).to_material();
+
+    let mut boxes1 = HittableList::default();
+    let boxes_per_side = 20;
+    for i in 0..boxes_per_side {
+        for j in 0..boxes_per_side {
+            let w = 100.0;
+            let p0 = Point3::new(
+                -1000.0 + i as f64 * w,
+                0.0,
+                -1000.0 + j as f64 * w
+            );
+            let p1 = Point3::new(
+                p0.x + w,
+                rand_range(1.0, 101.0),
+                p0.z + w
+            );
+
+            boxes1.add(build_box(p0, p1, ground.clone()).to_object());
+        }
+    }
+    world.add(boxes1.to_bvh());
+
+    let light = DiffuseLight::new_by_color(ColorType::new(7.0, 7.0, 7.0)).to_material();
+    world.add(
+        Quad::new(
+            Point3::new(123.0, 554.0, 147.0),
+            Vec3::new(300.0, 0.0, 0.0),
+            Vec3::new(0.0, 0.0, 265.0),
+            light
+        ).to_object()
+    ); // light
+
+    let center1 = Point3::new(400.0, 400.0, 200.0);
+    let center2 = center1 + Vec3::new(30.0, 0.0, 0.0);
+    let sphere_material = Lambertian::new_by_color(ColorType::new(0.7, 0.3, 0.1)).to_material();
+    world.add(Sphere::new_moving(
+        center1, center2,
+        50.0, 
+        sphere_material
+    ).to_object());
+
+    world.add(Sphere::new_static(
+        Point3::new(260.0, 150.0, 45.0),
+        50.0,
+        Dielectric::new(1.5).to_material()
+    ).to_object());
+
+    world.add(Sphere::new_static(
+        Point3::new(0.0, 150.0, 145.0),
+        50.0,
+        Metal::new(ColorType::new(0.8, 0.8, 0.9), 1.0).to_material()
+    ).to_object());
+
+    let boundary = Sphere::new_static(
+        Point3::new(360.0, 150.0, 145.0),
+        70.0,
+        Dielectric::new(1.5).to_material()
+    ).to_object();
+    world.add(boundary.clone());
+
+    world.add(ConstantMedium::new_by_color(
+        boundary.clone(),
+        0.2, 
+        ColorType::new(0.2, 0.4, 0.9)
+    ).to_object());
+
+    let boundary = Sphere::new_static(
+        Point3::new(0.0, 0.0, 0.0),
+        5000.0,
+        Dielectric::new(1.5).to_material()
+    ).to_object();
+    world.add(ConstantMedium::new_by_color(
+        boundary.clone(),
+        0.0001, 
+        ColorType::new(1.0, 1.0, 1.0)
+    ).to_object());
+
+    let emat = Lambertian::new(ImageTexture::new("input/earthmap.jpg").to_texture()).to_material();
+    world.add(Sphere::new_static(
+        Point3::new(400.0, 200.0, 400.0),
+        100.0,
+        emat
+    ).to_object());
+
+    let pertext = NoiseTexture::new(0.2).to_texture();
+    world.add(Sphere::new_static(
+        Point3::new(220.0, 280.0, 300.0),
+        80.0,
+        Lambertian::new(pertext).to_material()
+    ).to_object());
+
+    let mut boxes2 = HittableList::default();
+    let white = Lambertian::new_by_color(ColorType::new(0.73, 0.73, 0.73)).to_material();
+    let ns = 1000;
+    for j in 0..ns {
+        boxes2.add(
+            Sphere::new_static(
+                Point3::rand_range(0.0, 165.0),
+                10.0,
+                white.clone()
+            ).to_object()
+        );
+    }
+
+    world.add(Translate::new(
+        RotateY::new(
+            boxes2.to_bvh(),
+            15.0
+        ).to_object(),
+        Vec3::new(-100.0, 270.0, 395.0)
+    ).to_object());
+
+    world.to_bvh()
+}
 // main part
 
 fn main() {
 
     let parameters = init_prompt();
 
-    let TYPE = 8;
+    let TYPE = 9;
     let cam = match TYPE {
         1 => build_camera_1(), // bouncing_spheres
         2 => build_camera_2(), // checkered_spheres
@@ -674,6 +824,8 @@ fn main() {
         6 => build_camera_6(), // simple_light
         7 => build_camera_7(), // cornell_box
         8 => build_camera_8(), // cornell_smoke
+        9 => build_camera_9(800, 10000, 40), // final scene
+        10 => build_camera_9(400, 250, 4), // final scene test
         _ => panic!("Not matched"),
     };
     let world = match TYPE {
@@ -685,10 +837,12 @@ fn main() {
         6 => build_world_6(),
         7 => build_world_7(),
         8 => build_world_8(),
+        9 => build_world_9(),
+        10 => build_world_9(), // final scene test
         _ => panic!("Not matched"),
     };
 
-    let img = cam.render(&(world.to_object()));
+    let img = cam.render(&world);
 
     tail_process(img, parameters, "fAKe");
 }

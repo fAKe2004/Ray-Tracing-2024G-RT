@@ -116,10 +116,8 @@ impl HittableList {
     self.objects.push(object);
   }
 
-  pub fn to_bvh(&mut self) -> Self{
-    let mut temp = HittableList::default();
-    temp.add(BvhNode::new(self).to_object());
-    temp
+  pub fn to_bvh(&mut self) -> Object {
+    BvhNode::new(self).to_object()
   }
 }
 
