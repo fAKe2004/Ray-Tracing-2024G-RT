@@ -2,6 +2,7 @@
 pub const INFINITY: f64 = f64::INFINITY;
 pub const PI: f64 = std::f64::consts::PI;
 pub const EPS: f64 = 1e-4;
+pub const E: f64 = std::f64::consts::E;
 pub const GAMMA_COEFFICIENT: f64 = 2.0;
 
 
@@ -23,7 +24,7 @@ pub mod bvh;
 pub mod texture;
 pub mod perlin;
 pub mod planar;
-
+pub mod constant_medium;
 
 pub use utility::{*};
 pub use color::{*};
@@ -40,3 +41,4 @@ pub use bvh::{*};
 pub use texture::{*};
 pub use perlin::{*};
 pub use planar::{*};
+pub use constant_medium::{*};

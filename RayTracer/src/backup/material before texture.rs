@@ -8,7 +8,7 @@ use crate::utility::{*};
 use std::sync::Arc;
 
 pub trait MaterialTrait {
-  fn scatter(&self, ray_in: &Ray, rec: &HitRecord, attunation: &mut ColorType, scattered: &mut Ray) -> bool;
+  fn scatter(&self, ray_in: &Ray, rec: &HitRecord, attenuation: &mut ColorType, scattered: &mut Ray) -> bool;
   fn to_material(self) ->
  Material;
 }
@@ -25,7 +25,7 @@ impl DefaultMaterial {
 }
 
 impl MaterialTrait for DefaultMaterial {
-  fn scatter(&self, ray_in: &Ray, rec: &HitRecord, attunation: &mut ColorType, scattered: &mut Ray) -> bool {
+  fn scatter(&self, ray_in: &Ray, rec: &HitRecord, attenuation: &mut ColorType, scattered: &mut Ray) -> bool {
     false
   }
   fn to_material(self) ->
@@ -48,7 +48,7 @@ impl Lambertian {
 }
 
 impl MaterialTrait for Lambertian {
-  fn scatter(&self, ray_in: &Ray, rec: &HitRecord, attunation: &mut ColorType, scattered: &mut Ray) -> bool {
+  fn scatter(&self, ray_in: &Ray, rec: &HitRecord, attenuation: &mut ColorType, scattered: &mut Ray) -> bool {
     let mut scatter_dircton = rec.normal + Vec3::rand_unit();
 
     if scatter_dircton.near_zero() { // to handle zero vector error
@@ -56,7 +56,7 @@ impl MaterialTrait for Lambertian {
     }
 
     *scattered = Ray::new(rec.p, scatter_dircton, ray_in.tm);
-    *attunation = self.albedo;
+    *attenuation = self.albedo;
     true
   }
   fn to_material(self) ->
@@ -82,11 +82,11 @@ impl Metal {
 }
 
 impl MaterialTrait for Metal {
-  fn scatter(&self, ray_in: &Ray, rec: &HitRecord, attunation: &mut ColorType, scattered: &mut Ray) -> bool {
+  fn scatter(&self, ray_in: &Ray, rec: &HitRecord, attenuation: &mut ColorType, scattered: &mut Ray) -> bool {
     let mut reflected = Vec3::reflect(ray_in.dir, rec.normal);
     reflected = reflected.normalize() + (self.fuzz * Vec3::rand_unit());
     *scattered = Ray::new(rec.p, reflected, ray_in.tm);
-    *attunation = self.albedo;
+    *attenuation = self.albedo;
     Vec3::dot(&scattered.dir, &rec.normal) > 0.0
   }
   fn to_material(self) ->
@@ -116,8 +116,8 @@ impl Dielectric {
 }
 
 impl MaterialTrait for Dielectric {
-  fn scatter(&self, ray_in: &Ray, rec: &HitRecord, attunation: &mut ColorType, scattered: &mut Ray) -> bool {
-    *attunation = ColorType::ones();
+  fn scatter(&self, ray_in: &Ray, rec: &HitRecord, attenuation: &mut ColorType, scattered: &mut Ray) -> bool {
+    *attenuation = ColorType::ones();
     let ratio = if rec.front_surface { 1.0 / self.refraction_index } else { self.refraction_index };
     
     let unit_direction =  ray_in.dir.normalize();

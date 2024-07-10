@@ -155,7 +155,7 @@ pub fn build_box(a: Point3, b: Point3, mat: Material) -> HittableList {
   ); // top
 
   sides.add(Quad::new(
-    Point3::new(min.x, min.y, max.z),
+    Point3::new(min.x, min.y, min.z), // 之前写为 max.z 了，在 cornell smoke 测出来了
     dx, dz, 
     mat.clone()
     ).to_object()

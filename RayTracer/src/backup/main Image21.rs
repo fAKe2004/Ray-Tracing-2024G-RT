@@ -257,39 +257,7 @@ fn build_camera_6() -> Camera { // simple_light
     cam
 }
 
-fn build_camera_7() -> Camera { // cornell_box
-    let aspect_ratio = 1.0;
-    let image_width = 600 as usize;
-    let sample_per_pixel = 200 as usize;
-    let max_ray_depth = 50 as usize;
-    let vfov = 40.0;
-    
-    let lookfrom = Point3::new(278.0, 278.0,-800.0);   // Point camera is looking from
-    let lookat = Point3::new(278.0, 278.0, 0.0); // Point camera is looking at
-    let vup = Vec3::new(0.0, 1.0, 0.0);     // Camera-relative "up" direction
-
-    let defocus_angle = 0.0;
-    let focus_dist = 10.0;
-
-    let background = ColorType::new(0.0, 0.0, 0.0);
-
-    let cam: Camera = Camera::new(
-        aspect_ratio, 
-        image_width, 
-        sample_per_pixel, 
-        max_ray_depth, 
-        vfov, 
-        lookfrom, 
-        lookat, 
-        vup, 
-        defocus_angle, 
-        focus_dist,
-        background
-    );
-    cam
-}
-
-fn build_camera_8() -> Camera { // cornell_smoke
+fn build_camera_7() -> Camera { // simple_light
     let aspect_ratio = 1.0;
     let image_width = 600 as usize;
     let sample_per_pixel = 200 as usize;
@@ -585,95 +553,21 @@ fn build_world_7() -> HittableList {
 
     world.to_bvh()
 }
-
-fn build_world_8() -> HittableList {
-    let mut world = HittableList::default();
-    let red = Lambertian::new_by_color(ColorType::new(0.65, 0.05, 0.05)).to_material();
-    let white = Lambertian::new_by_color(ColorType::new(0.73, 0.73, 0.73)).to_material();
-    let green = Lambertian::new_by_color(ColorType::new(0.12, 0.45, 0.12)).to_material();
-    let light = DiffuseLight::new_by_color(ColorType::new(7.0, 7.0, 7.0)).to_material();
-
-    world.add(Quad::new(
-        Point3::new(555.0, 0.0, 0.0),
-        Vec3::new(0.0, 555.0, 0.0),
-        Vec3::new(0.0, 0.0, 555.0),
-        green.clone()
-    ).to_object());
-
-    world.add(Quad::new(
-        Point3::new(0.0, 0.0, 0.0),
-        Vec3::new(0.0, 555.0, 0.0),
-        Vec3::new(0.0, 0.0, 555.0),
-        red.clone()
-    ).to_object());
-
-
-    world.add(Quad::new(
-        Point3::new(113.0, 554.0, 127.0),
-        Vec3::new(330.0, 0.0, 0.0),
-        Vec3::new(0.0, 0.0, 305.0),
-        light.clone()
-    ).to_object());
-
-    world.add(Quad::new(
-        Point3::new(0.0, 0.0, 0.0),
-        Vec3::new(555.0, 0.0, 0.0),
-        Vec3::new(0.0, 0.0, 555.0),
-        white.clone()
-    ).to_object());
-
-    world.add(Quad::new(
-        Point3::new(555.0, 555.0, 555.0),
-        Vec3::new(-555.0, 0.0, 0.0),
-        Vec3::new(0.0, 0.0, -555.0),
-        white.clone()
-    ).to_object());
-
-    world.add(Quad::new(
-        Point3::new(0.0, 0.0, 555.0),
-        Vec3::new(555.0, 0.0, 0.0),
-        Vec3::new(0.0,555.0, 0.0),
-        white.clone()
-    ).to_object());
-
-    let box1 = build_box(
-        Point3::new(0.0, 0.0, 0.0), 
-        Point3::new(165.0, 330.0, 165.0), 
-        white.clone()
-    ).to_object();
-    let box1 = RotateY::new(box1, 15.0).to_object();
-    let box1 = Translate::new(box1, Vec3::new(265.0, 1.0, 295.0)).to_object();
-    let box1 = ConstantMedium::new_by_color(box1, 0.01, ColorType::zero()).to_object();
-    world.add(box1);
-
-    let box2 = build_box(
-        Point3::new(0.0, 0.0, 0.0), 
-        Point3::new(165.0, 165.0, 165.0), 
-        white.clone()
-    ).to_object();
-    let box2 = RotateY::new(box2, -18.0).to_object();
-    let box2 = Translate::new(box2, Vec3::new(130.0, 1.0, 65.0)).to_object();
-    let box2 = ConstantMedium::new_by_color(box2, 0.01, ColorType::ones()).to_object();
-    world.add(box2);
-
-    world.to_bvh()
-}
 // main part
 
 fn main() {
 
     let parameters = init_prompt();
 
-    let TYPE = 8;
+    let TYPE = 7;
     let cam = match TYPE {
-        1 => build_camera_1(), // bouncing_spheres
-        2 => build_camera_2(), // checkered_spheres
-        3 => build_camera_3(), // earth
-        4 => build_camera_4(), // perlin_spheres
-        5 => build_camera_5(), // quads
-        6 => build_camera_6(), // simple_light
-        7 => build_camera_7(), // cornell_box
-        8 => build_camera_8(), // cornell_smoke
+        1 => build_camera_1(),
+        2 => build_camera_2(),
+        3 => build_camera_3(),
+        4 => build_camera_4(),
+        5 => build_camera_5(),
+        6 => build_camera_6(),
+        7 => build_camera_7(),
         _ => panic!("Not matched"),
     };
     let world = match TYPE {
@@ -684,7 +578,6 @@ fn main() {
         5 => build_world_5(),
         6 => build_world_6(),
         7 => build_world_7(),
-        8 => build_world_8(),
         _ => panic!("Not matched"),
     };
 

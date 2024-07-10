@@ -59,7 +59,7 @@ pub type Object = Arc<dyn Hittable + Send + Sync>; // Shared Ptr
 
 ```rust
 pub trait MaterialTrait {
-  fn scatter(&self, ray_in: &Ray, rec: &HitRecord, attunation: &mut ColorType, scattered: &mut Ray) -> bool;
+  fn scatter(&self, ray_in: &Ray, rec: &HitRecord, attenuation: &mut ColorType, scattered: &mut Ray) -> bool;
   fn to_material(self) -> Material;
 }
 
