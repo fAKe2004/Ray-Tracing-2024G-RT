@@ -61,6 +61,8 @@ impl Hittable for ConstantMedium {
       return false;
     }
 
+    rec.u = rec1.u;
+    rec.v = rec1.v;
     rec.t = rec1.t + hit_distance / ray_length;
     rec.p = ray.at(rec.t);
 

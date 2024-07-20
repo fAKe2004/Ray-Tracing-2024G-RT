@@ -5,7 +5,7 @@ use crate::texture::{*};
 use crate::aabb::{*};
 use crate::hittable::{*};
 use crate::interval::{*};
-use crate::EPS;
+use crate::{EPS, PI};
 
 use std::sync::{Arc};
 
@@ -161,4 +161,308 @@ pub fn build_box(a: Point3, b: Point3, mat: Material) -> HittableList {
     ).to_object()
   ); // bottom
   sides
+}
+
+
+
+
+
+
+pub struct Triangle {
+  Q: Point3,
+  u: Vec3,
+  v: Vec3,
+  w: Vec3,
+  mat: Material,
+  bbox: Aabb,
+  normal: Vec3,
+  D: f64, // constant for plane equation
+}
+
+impl Triangle {
+  pub fn new(Q: Point3, u: Vec3, v: Vec3, mat: Material) -> Self {
+    let bbox_diagonal1 = Aabb::new_by_point(Q, Q + u + v);
+    let bbox_diagonal2 = Aabb::new_by_point(Q + u, Q + v);
+    let bbox = Aabb::new_by_aabb(bbox_diagonal1, bbox_diagonal2);
+    let n = u.cross(&v);
+    let normal = n.normalize();
+    let D  = normal.dot(&Q);
+    let w = n / n.norm_squared(); 
+    Self {
+      Q,
+      u,
+      v,
+      w,
+      mat,
+      bbox,
+      normal,
+      D,
+    }
+  }
+}
+
+impl Clone for Triangle {
+  fn clone(&self) -> Self {
+    Self {
+      mat: self.mat.clone(),
+      ..*self
+    }
+  }
+}
+
+impl Planar for Triangle {
+  fn is_interier(&self, a: f64, b: f64, rec: &mut HitRecord) -> bool {
+    let unit_interval = Interval::new(0.0, 1.0);
+
+    if !unit_interval.contains(a) || !unit_interval.contains(b) || !unit_interval.contains(a + b) {
+      false
+    } else {
+      rec.u = a;
+      rec.v = b;
+      true
+    }
+  }
+}
+
+impl Hittable for Triangle {
+  fn hit(&self, ray: &crate::Ray, ray_t: Interval, rec: &mut HitRecord) -> bool {
+    let den = self.normal.dot(&ray.dir);
+    if den.abs() < EPS {
+      return false;
+    }
+
+    let t = (self.D - self.normal.dot(&ray.orig))/ den;
+    if !ray_t.contains(t) {
+      return false;
+    }
+
+    let intersection = ray.at(t);
+    let planar_hitpt_vector = intersection - self.Q;
+    let alpha = self.w.dot(&planar_hitpt_vector.cross(&self.v));
+    let beta = self.w.dot(&self.u.cross(&planar_hitpt_vector));
+
+    
+    if !self.is_interier(alpha, beta, rec) {
+      return false;
+    }
+    
+    *rec = HitRecord::new_from_ray_and_outward_normal(
+      ray,
+      self.normal,
+      self.mat.clone(),
+      t,
+      rec.u, rec.v
+    );
+
+    true
+  }
+  fn to_object(self) -> Object {
+    Arc::new(self)
+  }
+  fn bounding_box(&self) -> Aabb {
+    self.bbox
+  }
+}
+
+
+
+
+
+
+
+
+pub struct Circle {
+  Q: Point3,
+  u: Vec3,
+  v: Vec3,
+  w: Vec3,
+  mat: Material,
+  bbox: Aabb,
+  normal: Vec3,
+  D: f64, // constant for plane equation
+}
+
+impl Circle {
+  pub fn new(Q: Point3, u: Vec3, v: Vec3, mat: Material) -> Self {
+    let bbox_diagonal1 = Aabb::new_by_point(Q - u - v, Q + u + v); // circle 的 bbox 和之前的不一样。
+    let bbox_diagonal2 = Aabb::new_by_point(Q + u - v, Q - u + v);
+    let bbox = Aabb::new_by_aabb(bbox_diagonal1, bbox_diagonal2);
+    let n = u.cross(&v);
+    let normal = n.normalize();
+    let D  = normal.dot(&Q);
+    let w = n / n.norm_squared(); 
+    Self {
+      Q,
+      u,
+      v,
+      w,
+      mat,
+      bbox,
+      normal,
+      D,
+    }
+  }
+}
+
+impl Clone for Circle {
+  fn clone(&self) -> Self {
+    Self {
+      mat: self.mat.clone(),
+      ..*self
+    }
+  }
+}
+
+impl Planar for Circle {
+  fn is_interier(&self, a: f64, b: f64, rec: &mut HitRecord) -> bool {
+    let unit_interval = Interval::new(0.0, 1.0);
+  
+    if !unit_interval.contains(a * a + b * b) {
+      false
+    } else {
+      rec.u = (a*a + b*b).sqrt();
+      rec.v = (a.atan2(b) + PI / 2.0) / PI;
+      true
+    }
+  }
+}
+
+impl Hittable for Circle {
+  fn hit(&self, ray: &crate::Ray, ray_t: Interval, rec: &mut HitRecord) -> bool {
+    let den = self.normal.dot(&ray.dir);
+    if den.abs() < EPS {
+      return false;
+    }
+
+    let t = (self.D - self.normal.dot(&ray.orig))/ den;
+    if !ray_t.contains(t) {
+      return false;
+    }
+
+    let intersection = ray.at(t);
+    let planar_hitpt_vector = intersection - self.Q;
+    let alpha = self.w.dot(&planar_hitpt_vector.cross(&self.v));
+    let beta = self.w.dot(&self.u.cross(&planar_hitpt_vector));
+
+    
+    if !self.is_interier(alpha, beta, rec) {
+      return false;
+    }
+    
+    *rec = HitRecord::new_from_ray_and_outward_normal(
+      ray,
+      self.normal,
+      self.mat.clone(),
+      t,
+      rec.u, rec.v
+    );
+
+    true
+  }
+  fn to_object(self) -> Object {
+    Arc::new(self)
+  }
+  fn bounding_box(&self) -> Aabb {
+    self.bbox
+  }
+}
+
+
+pub struct Ring {
+  Q: Point3,
+  u: Vec3,
+  v: Vec3,
+  min_ratio: f64,
+  w: Vec3,
+  mat: Material,
+  bbox: Aabb,
+  normal: Vec3,
+  D: f64, // constant for plane equation
+}
+
+impl Ring {
+  pub fn new(Q: Point3, u: Vec3, v: Vec3, mat: Material, min_ratio: f64) -> Self {
+    let bbox_diagonal1 = Aabb::new_by_point(Q - u - v, Q + u + v); // circle 的 bbox 和之前的不一样。
+    let bbox_diagonal2 = Aabb::new_by_point(Q + u - v, Q - u + v);
+    let bbox = Aabb::new_by_aabb(bbox_diagonal1, bbox_diagonal2);
+    let n = u.cross(&v);
+    let normal = n.normalize();
+    let D  = normal.dot(&Q);
+    let w = n / n.norm_squared(); 
+    Self {
+      Q,
+      u,
+      v,
+      min_ratio,
+      w,
+      mat,
+      bbox,
+      normal,
+      D,
+    }
+  }
+}
+
+impl Clone for Ring {
+  fn clone(&self) -> Self {
+    Self {
+      mat: self.mat.clone(),
+      ..*self
+    }
+  }
+}
+
+impl Planar for Ring {
+  fn is_interier(&self, a: f64, b: f64, rec: &mut HitRecord) -> bool {
+    let unit_interval = Interval::new(self.min_ratio, 1.0);
+  
+    if !unit_interval.contains((a * a + b * b).sqrt()) {
+      false
+    } else {
+      rec.u = (a*a + b*b).sqrt();
+      rec.v = (a*a + b*b).sqrt();
+      // rec.v = (a.atan2(b) + PI / 2.0) / PI;
+      true
+    }
+  }
+}
+
+impl Hittable for Ring {
+  fn hit(&self, ray: &crate::Ray, ray_t: Interval, rec: &mut HitRecord) -> bool {
+    let den = self.normal.dot(&ray.dir);
+    if den.abs() < EPS {
+      return false;
+    }
+
+    let t = (self.D - self.normal.dot(&ray.orig))/ den;
+    if !ray_t.contains(t) {
+      return false;
+    }
+
+    let intersection = ray.at(t);
+    let planar_hitpt_vector = intersection - self.Q;
+    let alpha = self.w.dot(&planar_hitpt_vector.cross(&self.v));
+    let beta = self.w.dot(&self.u.cross(&planar_hitpt_vector));
+
+    
+    if !self.is_interier(alpha, beta, rec) {
+      return false;
+    }
+    
+    *rec = HitRecord::new_from_ray_and_outward_normal(
+      ray,
+      self.normal,
+      self.mat.clone(),
+      t,
+      rec.u, rec.v
+    );
+
+    true
+  }
+  fn to_object(self) -> Object {
+    Arc::new(self)
+  }
+  fn bounding_box(&self) -> Aabb {
+    self.bbox
+  }
 }

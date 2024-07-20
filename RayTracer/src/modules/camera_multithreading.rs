@@ -1,5 +1,5 @@
-const HEIGHT_PARTITION: usize = 10; // multithreading parameters
-const WIDTH_PARTITION: usize = 10;
+const HEIGHT_PARTITION: usize = 50; // multithreading parameters
+const WIDTH_PARTITION: usize = 50;
 const THREAD_LIMIT: usize = 20;
 
 use crate::EPS;
@@ -202,7 +202,7 @@ impl Camera {
     let world_wrapper = Arc::new(world);
     let img_mtx = Arc::new(Mutex::new(&mut img));
     
-    thread::scope(move |thd|{
+    thread::scope(move |thd_spawner|{
       let thread_count = Arc::new(AtomicUsize::new(0));
       let thread_number_controller = Arc::new(Condvar::new());
       
@@ -226,9 +226,9 @@ impl Camera {
           let thread_number_controller = Arc::clone(&thread_number_controller);
 
           thread_count.fetch_add(1, Ordering::SeqCst);
-          bar.set_message(format!("|{} threads outstanding|", thread_count.load(Ordering::SeqCst))); // move out of thread, so that its sequential with thread number control code
+          bar.set_message(format!("|{} threads outstanding|", thread_count.load(Ordering::SeqCst))); // move out of thread, so that it's sequential with thread number control code
 
-          let _ = thd.spawn(move |_| {
+          let _ = thd_spawner.spawn(move |_| {
             camera.render_sub(&world, &img_mtx, &bar, 
               i * chunk_width, (i + 1) * chunk_width, 
               j * chunk_height, (j + 1) * chunk_height);
@@ -250,6 +250,10 @@ impl Camera {
     let y_min = y_min.max(0);
     let x_max = x_max.min(self.image_width);
     let y_max = y_max.min(self.image_height);
+
+    if y_max <= y_min || x_max <= x_min {
+      return;
+    }
 
     let mut buff: Vec<Vec<ColorType>> = vec![vec![ColorType::zero(); y_max - y_min]; x_max - x_min];
     for j in y_min..y_max {

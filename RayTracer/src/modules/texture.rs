@@ -2,6 +2,7 @@ use crate::utility::{*};
 use crate::vec3::{*};
 use crate::color::{*};
 use crate::perlin::{*};
+use crate::EPS;
 use std::sync::Arc;
 
 pub trait TextureTrait {
@@ -99,19 +100,19 @@ impl ImageTexture {
     }
 
     pub fn get_color_bilinear(&self, mut u: f64, mut v: f64) -> ColorType {
-        if u < 0.0 { u = 0.0; }
-        if u > 1.0 { u = 1.0; }
-        if v < 0.0 { v = 0.0; }
-        if v > 1.0 { v = 1.0; }
+        if u < 0.0 + EPS { u = 0.0; }
+        if u > 1.0 - EPS { u = 1.0; }
+        if v < 0.0 + EPS { v = 0.0; }
+        if v > 1.0 - EPS { v = 1.0; }
 
         // let mut u_img = u * (self.width - 1) as f64;
         let mut u_img = u * (self.width - 1) as f64;
         let mut v_img = (1.0 - v) * (self.height - 1) as f64;
 
         let u1 = u_img as i32;
-        let u2 = u1 + 1;
+        let u2 = (u1 + 1).min((self.width - 1) as i32);
         let v1 = v_img as i32;
-        let v2 = v1 + 1;
+        let v2 = (v1 + 1).min((self.height - 1) as i32);
         let color11: Vector3<f64> = convert_U8VecN_to_Vector3f64(self.img_data.at_2d(v1, u1).unwrap());
         let color12: Vector3<f64> = convert_U8VecN_to_Vector3f64(self.img_data.at_2d(v1, u2).unwrap());
         let color21: Vector3<f64> = convert_U8VecN_to_Vector3f64(self.img_data.at_2d(v2, u1).unwrap());

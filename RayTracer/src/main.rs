@@ -9,6 +9,8 @@ use color::ColorType;
 // standard library
 use image::{ImageBuffer, RgbImage}; //接收render传回来的图片，在main中文件输出
 use indicatif::{ProgressBar, ProgressStyle};
+use nalgebra::center;
+use nalgebra::Point;
 use std::fs::File;
 use std::env;
 use std::io;
@@ -18,13 +20,15 @@ use std::io;
 
 
 // return (path, file_name, default_file_name, quality)
-fn init_prompt() -> (String, String, String, u8) {
+fn init_prompt() -> (String, String, String, u8, bool) {
     let path: String = "output/".into();
     let default_file_name: String = "test.jpg".into();
 
     let mut file_name: String = default_file_name.clone();
 
     let quality = 60 as u8;
+
+    let mut release_flag = false;
 
 
 
@@ -36,18 +40,21 @@ fn init_prompt() -> (String, String, String, u8) {
     } else {
         file_name = args[1].clone();
         println!("Info: Output file specified as \"{}{}\"", path, file_name);
+        if args.len() > 2 && args[2].clone() == "--release" {
+            release_flag = true
+        }
     }
-    (path, file_name, default_file_name, quality)
+    (path, file_name, default_file_name, quality, release_flag)
 }
 
-fn tail_process(img: RgbImage, parameters: (String, String, String, u8), author: &str) {
-    let (path, mut file_name, default_file_name, quality) = parameters;
+fn tail_process(img: RgbImage, parameters: (String, String, String, u8, bool), author: &str) {
+    let (path, mut file_name, default_file_name, quality, release_flag) = parameters;
     
-    println!("Ouput image as \"{}\"\n Author: {}", path.clone() + &file_name, author);
+    println!("Ouput image as \"{}\"\n Author: {}\n Is release? {}", path.clone() + &file_name, author, release_flag);
     let output_image: image::DynamicImage = image::DynamicImage::ImageRgb8(img);
 
 
-    let confirmation_flag = get_output_confirmation(&mut file_name, &default_file_name);
+    let confirmation_flag = get_output_confirmation(&mut file_name, &default_file_name, release_flag);
 
     if confirmation_flag == false {
         println!("Canceled");
@@ -55,11 +62,20 @@ fn tail_process(img: RgbImage, parameters: (String, String, String, u8), author:
     }
 
     let mut output_file: File = File::create(path.clone() + &file_name).unwrap();
-    match output_image.write_to(&mut output_file, image::ImageOutputFormat::Jpeg(quality)) {
-        Ok(_) => {}
-        Err(_) => println!("Outputting image fails."),
+    while true {
+        match output_image.write_to(&mut output_file, image::ImageOutputFormat::Jpeg(quality)) {
+            Ok(_) => { 
+                println!("Render finished with success.");
+                break; 
+            }
+            Err(_) => {
+                println!("Outputting image fails. \n Please enter another file name.");
+                let mut input: String = String::default();
+                let _ = io::stdin().read_line(&mut input);
+                output_file = File::create(path.clone() + &input).unwrap();
+            }
+        }
     }
-    println!("Render finished with success.");
 }
 
 fn build_camera_1() -> Camera { // bouncing_spheres
@@ -810,12 +826,318 @@ fn build_world_9() -> Object {
 }
 // main part
 
+fn build_final_camera(image_width: usize, sample_per_pixel: usize, max_ray_depth: usize) -> Camera { // cornell_smoke
+    let aspect_ratio = 16.0 / 9.0;
+    let vfov = 40.0;
+    
+    let lookfrom = Point3::new(600.0, 120.0,600.0);   // Point camera is looking from
+    let lookat = Point3::new(0.0, 0.0, 0.0); // Point camera is looking at
+    let vup = Vec3::new(0.0, 1.0, 0.0);     // Camera-relative "up" direction
+
+    let defocus_angle = 0.0;
+    let focus_dist = 10.0;
+
+    let background = ColorType::new(0.0, 0.0, 0.0);
+
+    let cam: Camera = Camera::new(
+        aspect_ratio, 
+        image_width, 
+        sample_per_pixel, 
+        max_ray_depth, 
+        vfov, 
+        lookfrom, 
+        lookat, 
+        vup, 
+        defocus_angle, 
+        focus_dist,
+        background
+    );
+    cam
+}
+
+fn build_final_world() -> Object {
+    let mut world = HittableList::default();
+    
+    let SeaTexture = ImageTexture::new("input/sea.jpg").to_texture();
+    let MarsTexture = ImageTexture::new("input/Mars.jpg").to_texture();
+    let JupiterTexture = ImageTexture::new("input/Jupiter.jpg").to_texture();
+    let UranusTexture = ImageTexture::new("input/Uranus.jpg").to_texture();
+    let VenusTexture = ImageTexture::new("input/Venus.jpg").to_texture();
+    let SaturnTexture = ImageTexture::new("input/Saturn.jpg").to_texture();
+    let SunTexture = ImageTexture::new("input/Sun.jpg").to_texture();
+    let EarthDayTexture = ImageTexture::new("input/EarthDay.jpg").to_texture();
+
+    let Dielectric05 = Dielectric::new(0.5).to_material();
+    let Dielectric15 = Dielectric::new(1.5).to_material();
+    
+    let OrbitStationMaterial = Dielectric::new(1.5).to_material();
+    let OrbitStationInnerMaterial = LambertianWithLight::new(JupiterTexture.clone(), ColorType::new(10.0, 10.0, 10.0)).to_material();
+
+    world.add( // main sphere
+        Sphere::new_static(
+            Point3::new(0.0, -100.0, 0.0),
+            70.0, 
+            LambertianWithLight::new(SeaTexture.clone(), ColorType::new(0.6, 0.6, 0.6)).to_material()
+        ).to_object()
+    );
+    world.add( // main sphere
+        Sphere::new_static(
+            Point3::new(0.0, -100.0, 0.0),
+            100.0, 
+            Dielectric15.clone()
+        ).to_object()
+    );
+
+
+    world.add( // OrbitStation
+        Sphere::new_static(
+            Point3::new(0.0, 50.0, 0.0),
+            20.0, 
+            OrbitStationMaterial
+        ).to_object()
+    );
+
+    world.add(
+        Sphere::new_static(
+            Point3::new(0.0, 50.0, 0.0),
+            8.0, 
+            OrbitStationInnerMaterial
+        ).to_object()
+    );
+
+    world.add(
+        Circle::new(
+            Point3::new(0.0, 50.0, 0.0),
+            Vec3::new(50.0, 0.0, 0.0),
+            Vec3::new(0.0, 0.0, 50.0),
+            Lambertian::new(VenusTexture.clone()).to_material()
+        ).to_object()
+    );
+
+
+
+    world.add( // light
+        Sphere::new_static(
+            Point3::new(0.0, 500.0, 0.0),
+            50.0,
+            DiffuseLight::new_by_color(ColorType::new(100.0, 100.0, 100.0)).to_material()
+        ).to_object()
+    );
+
+    let TriangleMaterial = Dielectric05.clone();
+    
+    world.add( // orbit station extension
+        Triangle::new(
+            Point3::new(0.0, 50.0, 0.0),
+            Point3::new(10.0, -60.0, -10.0),
+            Point3::new(10.0, -60.0, 10.0),
+            TriangleMaterial.clone()
+        ).to_object()
+    );
+    world.add(
+        Triangle::new(
+            Point3::new(0.0, 50.0, 0.0),
+            Point3::new(10.0, -60.0, 10.0),
+            Point3::new(-10.0, -60.0, 10.0),
+            TriangleMaterial.clone()
+        ).to_object()
+    );
+    world.add(
+        Triangle::new(
+            Point3::new(0.0, 50.0, 0.0),
+            Point3::new(-10.0, -60.0, 10.0),
+            Point3::new(-10.0, -60.0, -10.0),
+            TriangleMaterial.clone()
+        ).to_object()
+    );
+    world.add(
+        Triangle::new(
+            Point3::new(0.0, 50.0, 0.0),
+            Point3::new(10.0, -60.0, -10.0),
+            Point3::new(-10.0, -60.0, -10.0),
+            TriangleMaterial.clone()
+        ).to_object()
+    );
+
+
+    let SaturnCenter = Point3::new(-300.0, -30.0,200.0);
+    world.add( // main sphere 1
+        Sphere::new_static(
+            SaturnCenter,
+            50.0,
+            Lambertian::new(SaturnTexture.clone()).to_material()
+        ).to_object()
+    );
+    world.add(
+        Ring::new(
+            SaturnCenter,
+            Vec3::new(80.0, -20.0, 0.0),
+            Vec3::new(0.0, 0.0, 90.0),
+            Lambertian::new(JupiterTexture.clone()).to_material(),
+            0.75
+        ).to_object()
+    );
+
+    world.add( // main sphere 2
+        Sphere::new_static(
+            Point3::new(100.0, -50.0, 450.0),
+            25.0,
+            LambertianWithLight::new(UranusTexture.clone(), ColorType::new(0.1, 0.1, 0.1)).to_material()
+        ).to_object()
+    );
+
+    world.add( // main sphere 3
+        Sphere::new_static(
+            Point3::new(200.0, -50.0, 300.0),
+            40.0,
+            LambertianWithLight::new(MarsTexture.clone(), ColorType::new(0.02, 0.02, 0.02)).to_material()
+        ).to_object()
+    );
+
+    world.add( // main sphere 4
+        Sphere::new_static(
+            Point3::new(100.0, -25.0, -300.0),
+            55.0,
+            Lambertian::new(EarthDayTexture.clone()).to_material()
+        ).to_object()
+    );
+
+    world.add( // main sphere 5
+        Sphere::new_static(
+            Point3::new(400.0, -35.0, 0.0),
+            50.0,
+            Lambertian::new(JupiterTexture.clone()).to_material()
+        ).to_object()
+    );
+
+
+
+
+    let AmbientLight = ColorType::new(0.2, 0.2, 0.2);
+    let RandomSphereMaterials: Vec<Material> = vec![
+        Metal::new(ColorType::new(0.1, 0.1, 0.8), 0.2).to_material(),
+        Metal::new(ColorType::new(0.8, 0.8, 0.8), 0.2).to_material(),
+        Metal::new(ColorType::new(0.8, 0.8, 0.8), 0.2).to_material(),
+        Dielectric::new(1.5).to_material(),
+        Dielectric::new(1.5).to_material(),
+        Dielectric::new(1.5).to_material(),
+        Dielectric::new(0.2).to_material(),
+        Dielectric::new(0.2).to_material(),
+        Dielectric::new(0.2).to_material(),
+        LambertianWithLight::new(UranusTexture.clone(), AmbientLight).to_material(),
+        LambertianWithLight::new(JupiterTexture.clone(), AmbientLight).to_material(),
+        LambertianWithLight::new(MarsTexture.clone(), AmbientLight).to_material(),
+        LambertianWithLight::new(JupiterTexture.clone(), AmbientLight).to_material(),
+        LambertianWithLight::new(SaturnTexture.clone(), AmbientLight).to_material(),
+        LambertianWithLight::new(NoiseTexture::new(1.0).to_texture(), AmbientLight).to_material(),
+        LambertianWithLight::new(NoiseTexture::new(1.0).to_texture(), AmbientLight).to_material()
+    ];
+
+    let center_interval = Interval::new(-100.0, 100.0);
+    for i in 0..80 {
+        let x = rand_range(-1000.0, -100.0);
+        let y = rand_range(50.0, 500.0);
+        let z = rand_range(-1000.0, -100.0);
+        let r = rand_range(5.0, 15.0);
+        let dynamic = rand_01() < 0.8;
+        if center_interval.contains(x) && center_interval.contains(y) {
+            continue;
+        }
+        let center = Point3::new(x, y, z);
+
+        let mat = RandomSphereMaterials[rand_range_int(0, RandomSphereMaterials.len() as i32 - 1) as usize].clone();
+        if dynamic {
+            let velo = Vec3::rand_01() * r * r;
+            world.add(
+                Sphere::new_moving(
+                    center,
+                    center + velo,
+                    r / 1.5, 
+                    mat
+                ).to_object()
+            )
+        } else {
+            world.add(
+                Sphere::new_static(
+                    center,
+                    r,
+                    mat
+                ).to_object()
+            );
+        }
+        
+    }
+
+
+    let RandomPillarMaterials: Vec<Material> = vec![
+        Dielectric::new(1.2).to_material(),
+        Dielectric::new(0.5).to_material(),
+        Dielectric::new(1.5).to_material()
+    ];
+    for i in 0..10 {
+        let x = rand_range(-1000.0, -200.0);
+        let y = rand_range(-40.0, 80.0);
+        let z = rand_range(-1000.0, -200.0);
+        let d = rand_range(30.0, 50.0);
+
+        if center_interval.contains(x) && center_interval.contains(y) {
+            continue;
+        }
+        let mat = RandomPillarMaterials[rand_range_int(0, RandomPillarMaterials.len() as i32 - 1) as usize].clone();
+
+        let pillar = build_box(Point3::new(x, -10000.0, z), Point3::new(x + d, y, z + d), mat).to_object();
+        world.add(
+            pillar
+        );
+    }
+
+    world.add( // mirror
+        Quad::new(
+            Point3::new(-2000.0, -100.0, -2000.0),
+            Vec3::new(4000.0, 0.0, 0.0),
+            Vec3::new(0.0, 0.0, 4000.0),
+            Metal::new(ColorType::new(1.0, 1.0, 1.0), 0.05).to_material()
+        ).to_object()
+    );
+    // let halo = build_box(Point3::new(-2000.0, -100.0, -2000.0), Point3::new(2000.0, -90.0, 2000.0), DefaultMaterial::new().to_material()).to_bvh();
+            
+    // world.add( // halo
+    //     ConstantMedium::new(halo, 0.04, SolidColor::new(ColorType::new(0.2, 0.4, 0.6)).to_texture()).to_object()
+    // );
+
+    let background_material = LambertianWithLight::new(ImageTexture::new("input/hubble_skymap.jpg").to_texture(), ColorType::new(0.1, 0.1, 0.1)).to_material();
+
+    world.add(
+        // Quad::new(
+        //     Point3::new(-5000.0 - 7500.0, -4000.0, 5000.0 - 7500.0),
+        //     Vec3::new(10000.0, 0.0, -10000.0),
+        //     Vec3::new(0.0, 10000.0, 0.0),
+        //     background_material
+        // ).to_object()
+        Sphere::new_static(
+            Point3::new(0.0, 0.0, 0.0), 
+            3000.0, 
+            background_material
+        ).to_object()
+    );
+
+    world.to_bvh()
+}
+
+
+
+
+
+
+
 fn main() {
 
     let parameters = init_prompt();
 
-    let TYPE = 9;
+    let mut TYPE = if parameters.4 {0} else {-1};
     let cam = match TYPE {
+        -1 => build_final_camera(400, 2000, 10),
+        0 => build_final_camera(1200, 5000, 40),
         1 => build_camera_1(), // bouncing_spheres
         2 => build_camera_2(), // checkered_spheres
         3 => build_camera_3(), // earth
@@ -825,10 +1147,12 @@ fn main() {
         7 => build_camera_7(), // cornell_box
         8 => build_camera_8(), // cornell_smoke
         9 => build_camera_9(800, 10000, 40), // final scene
-        10 => build_camera_9(400, 250, 4), // final scene test
+        10 => build_camera_9(400, 2000, 10), // final scene test
         _ => panic!("Not matched"),
     };
     let world = match TYPE {
+        -1 => build_final_world(),
+        0 => build_final_world(), 
         1 => build_world_1(),
         2 => build_world_2(),
         3 => build_world_3(),

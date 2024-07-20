@@ -45,8 +45,13 @@ pub fn get_ProgressBar(height: usize, width: usize) -> ProgressBar {
   bar
 }
 
-pub fn get_output_confirmation(file_name: &mut String, default_file_name: &String) -> bool {
-
+pub fn get_output_confirmation(file_name: &mut String, default_file_name: &String, is_release: bool) -> bool {
+  if is_release {
+    println!("Release version; confirmation procedure skipped.");
+    return true
+  
+  }
+    
   if file_name == default_file_name {
     println!("File name is default; confirmation procedure skipped.");
     return true

@@ -210,3 +210,47 @@ impl MaterialTrait for Isotropic {
       Arc::new(self)
   }
 }
+
+pub struct LambertianWithLight {
+  tex: Texture,
+  light: ColorType,
+}
+
+
+impl LambertianWithLight {
+  pub fn new(tex: Texture, light: ColorType) -> Self {
+    Self {
+      tex,
+      light,
+    }
+  }
+
+  pub fn new_by_color(albedo: ColorType, light: ColorType) -> Self {
+    Self {
+      tex: SolidColor::new(albedo).to_texture(),
+      light,
+    }
+  }
+}
+
+impl MaterialTrait for LambertianWithLight {
+  fn scatter(&self, ray_in: &Ray, rec: &HitRecord, attenuation: &mut ColorType, scattered: &mut Ray) -> bool {
+    let mut scatter_dircton = rec.normal + Vec3::rand_unit();
+
+    if scatter_dircton.near_zero() { // to handle zero vector error
+      scatter_dircton = rec.normal
+    }
+
+    *scattered = Ray::new(rec.p, scatter_dircton, ray_in.tm);
+    *attenuation = self.tex.value(rec.u, rec.v, rec.p);
+    true
+  }
+  fn emitted(&self, u: f64, v: f64, p: Point3) -> ColorType {
+      self.light.elemul(&self.tex.value(u, v, p))
+  }
+
+  fn to_material(self) ->
+  Material {
+     Arc::new(self)
+  }
+}
